@@ -5,11 +5,12 @@
 $Api  = 'https://script.google.com/macros/s/AKfycbweBnYtZOBvW1vszKQgli5UUdwyPMecMkSCiPwRKJQVIpombUxYVFf3Y0XsSlBkGk3C/exec'
 $Code = 'CODE_ADMIN'   # ton code admin (onglet Utilisateurs du Sheet)
 
-# Dossiers surveillés : r = Z (films du disque réseau), S (séries du disque réseau), W (Whale)
+# Dossiers surveillés : Z = films du disque réseau, S = séries du disque réseau, W = films de Whale, T = séries de Whale
 $Roots = @(
   @{ r = 'Z'; path = '\\192.168.1.125\Public\Shared Videos' },
   @{ r = 'S'; path = '\\192.168.1.125\Public\Shared Séries' },
-  @{ r = 'W'; path = 'G:\Videothèque' }
+  @{ r = 'W'; path = 'G:\Videothèque' },
+  @{ r = 'T'; path = 'G:\Séries' }
 )
 
 $Log  = Join-Path $PSScriptRoot 'hmdb-scan.log'

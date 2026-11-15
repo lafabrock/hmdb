@@ -117,7 +117,7 @@ function hmdbFix(t, y, corr) {
 }
 
 /**
- * files : [{r:'Z'|'S'|'W', p:'chemin/relatif', s:taille, m:mtime ms}]
+ * files : [{r:'Z'|'S'|'W'|'T', p:'chemin/relatif', s:taille, m:mtime ms}]
  * corr  : corrections de l'onglet « Corrections » {clé normalisée: [titre|null, année, catégorie, saga]}
  * Renvoie des lignes [titre, année, catégorie, saga, emplacement, ajouté (s)].
  */
@@ -154,15 +154,14 @@ function hmdbBuildLibrary(files, corr) {
   var seenSeries = {};
   vids.forEach(function (f) {
     var parts = f.p.split('/'), base = parts[parts.length - 1], top = parts.length > 1 ? parts[0] : '', sub = parts.length > 2 ? parts[1] : '';
-    var loc = f.r === 'W' ? 'W' : 'Z', dirKey = f.r + ':' + parts.slice(0, -1).join('/');
+    var loc = (f.r === 'W' || f.r === 'T') ? 'W' : 'Z', ser = (f.r === 'S' || f.r === 'T'), dirKey = f.r + ':' + parts.slice(0, -1).join('/');
     var cat = CAT[top] || '', saga = SAGA[top] || '';
     if (top === "Films d'animation" && SUB[sub]) saga = SUB[sub];
     var cleanBase = base.replace(VIDEO_EXT, '').replace(/[._+]+/g, ' ');
     var isEp = /S\d{1,2}\s?E\d{1,3}/i.test(cleanBase);
     // Séries
-    if (f.r === 'S' || top === 'SERIES' || (isEp && f.r !== 'S')) {
-      var name = f.r === 'S' ? (top || base.replace(VIDEO_EXT, '').split(/[ .]S\d{2}E\d{2}/i)[0]) : (top === 'SERIES' ? (sub || base) : (parts.length > 1 ? parts[parts.length - 2] : base.split(/[ .]S\d{2}E\d{2}/i)[0]));
-      if (f.r !== 'S' && top !== 'SERIES' && f.r === 'S') name = top;
+    if (ser || top === 'SERIES' || isEp) {
+      var name = ser ? (top || base.replace(VIDEO_EXT, '').split(/[ .]S\d{2}E\d{2}/i)[0]) : (top === 'SERIES' ? (sub || base) : (parts.length > 1 ? parts[parts.length - 2] : base.split(/[ .]S\d{2}E\d{2}/i)[0]));
       var s = SERIES[name] || SERIES[name.replace(/\s+\d+(\.\d+)?$/, '')];
       var st = s ? s[0] : hmdbClean(name)[0], sy = s ? s[1] : hmdbClean(name)[1], ss = s ? s[2] : '';
       var c = corr[hmdbNorm(st)] || FIX[hmdbNorm(st)];
