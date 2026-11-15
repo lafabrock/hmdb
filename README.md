@@ -1,6 +1,6 @@
-# HMDB — films à voir de 9 à 12 ans
+# HMDB — les films de la maison
 
-Liste de suivi des films de l'index par âge du livre « Les 200 films à voir avant d'être grand » (Philippe Besnier).
+Vidéothèque familiale (films présents sur le disque réseau, titres seulement) et liste « 9-12 ans » tirée du livre « Les 200 films à voir avant d'être grand » (Philippe Besnier).
 
 - Vue liste et vue galerie, recherche, filtres par âge et par statut
 - Statuts : Vu / À voir / Pas intéressé (enregistrés dans le navigateur)
