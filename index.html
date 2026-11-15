@@ -75,6 +75,7 @@ main.g .head{display:none!important}
 .has small{display:none}
 footer{max-width:1200px;margin:0 auto;padding:0 12px 30px;font-size:11.5px;color:var(--mute)}
 footer a{color:inherit}
+.nasb{display:inline-block;margin-left:6px;font-size:11px;font-weight:600;color:var(--accd)}
 .empty{text-align:center;color:var(--mute);padding:30px}
 @media (max-width:420px){.st{margin-left:0;width:100%}.st button{flex:1}}
 @media (min-width:980px){
@@ -315,7 +316,8 @@ footer a{color:inherit}
 <script id="state" type="application/json">{}</script>
 <script id="app">
 (function(){
-var FILMS=JSON.parse(document.getElementById('films').textContent).map(function(f,i){return{id:i,age:f[0],fr:f[1],or:f[2]||f[1],y:f[3],d:f[4],chk:!!f[5]}});
+var NAS=["Harry Potter à l'école des sorciers", "Mon oncle", "Un jour sans fin", "Butch Cassidy et le Kid", "Goldfinger", "Jeux dangereux", "Sister Act", "Ant-Man", "Batman", "La Mort aux trousses", "Le Seigneur des anneaux : La Communauté de l'anneau", "Spider-Man 2", "Danse avec les loups", "Le Magnifique", "Men in Black", "Pirates des Caraïbes : La Malédiction du Black Pearl", "West Side Story", "Les Aventures du baron de Münchausen", "Les Aventuriers de l'Arche perdue", "Monty Python : Sacré Graal !"];
+var FILMS=JSON.parse(document.getElementById('films').textContent).map(function(f,i){return{id:i,age:f[0],fr:f[1],or:f[2]||f[1],y:f[3],d:f[4],chk:!!f[5],nas:NAS.indexOf(f[1])>=0}});
 var STATE={};try{STATE=JSON.parse(document.getElementById('state').textContent)||{}}catch(e){}
 var LS='films912-';
 function lsGet(k,d){try{var v=localStorage.getItem(LS+k);return v==null?d:JSON.parse(v)}catch(e){return d}}
@@ -331,21 +333,21 @@ function norm(s){return String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ
 function initials(t){var w=t.replace(/^(Le|La|Les|L'|The|Un|Une)\s*/i,'').split(/[\s,:'-]+/).filter(function(x){return x&&!/^(et|de|du|des|la|le|les|l|d|a|à|of|the|and)$/i.test(x)});return (w[0]||'?')[0].toUpperCase()+((w[1]||'')[0]||'').toUpperCase()}
 function chips(){
  var a=document.getElementById('ages');a.innerHTML=[0,9,10,11,12].map(function(x){return'<button class="chip'+(ui.age===x?' on':'')+'" data-age="'+x+'">'+(x?x+' ans':'Tous âges')+'</button>'}).join('');
- var counts={all:FILMS.length,vu:0,avoir:0,non:0,none:0};FILMS.forEach(function(f){counts[STATE[f.id]||'none']++});
- var s=document.getElementById('sts');s.innerHTML=[['all','Tous'],['avoir','À voir'],['vu','Vus'],['none','Sans statut'],['non','Pas intéressé']].map(function(x){return'<button class="chip'+(ui.st===x[0]?' on':'')+'" data-st="'+x[0]+'">'+x[1]+' ('+counts[x[0]]+')</button>'}).join('');
+ var counts={all:FILMS.length,vu:0,avoir:0,non:0,none:0,nas:0};FILMS.forEach(function(f){counts[STATE[f.id]||'none']++;if(f.nas)counts.nas++});
+ var s=document.getElementById('sts');s.innerHTML=[['all','Tous'],['nas','📀 À la maison'],['avoir','À voir'],['vu','Vus'],['none','Sans statut'],['non','Pas intéressé']].map(function(x){return'<button class="chip'+(ui.st===x[0]?' on':'')+'" data-st="'+x[0]+'">'+x[1]+' ('+counts[x[0]]+')</button>'}).join('');
 }
 function render(){
  chips();
  var q=norm(ui.q||'');
  var rows=FILMS.filter(function(f){
   if(ui.age&&f.age!==ui.age)return false;
-  var s=STATE[f.id]||'none';if(ui.st!=='all'&&s!==ui.st)return false;
+  var s=STATE[f.id]||'none';if(ui.st==='nas'){if(!f.nas)return false}else if(ui.st!=='all'&&s!==ui.st)return false;
   if(q&&norm(f.fr+' '+f.or+' '+f.d+' '+f.y).indexOf(q)<0)return false;return true});
  document.getElementById('count').textContent=rows.length+' film'+(rows.length>1?'s':'')+' affiché'+(rows.length>1?'s':'');
  VIS=rows;var LH=rows.length?rows.map(card=function(f){
   var s=STATE[f.id]||'';var c=COLORS[(f.y+f.fr.length)%COLORS.length];
   var orig=f.or!==f.fr?'<div class="or">'+esc(f.or)+'</div>':'';
-  var chk=f.chk?'<span class="chk" title="Plusieurs versions existent : vérifier laquelle le livre recommande">⚠ version à vérifier</span>':'';
+  var chk=f.chk?'<span class="chk" title="Plusieurs versions existent : vérifier laquelle le livre recommande">⚠ version à vérifier</span>':'';if(f.nas)chk+='<span class="nasb">📀 À la maison</span>';
   var imdb='https://www.imdb.com/find/?s=tt&q='+enc(f.or+' '+f.y);
   var sc='https://www.senscritique.com/search?query='+enc(f.fr);
   var rt='https://www.rottentomatoes.com/search?search='+enc(f.or);
@@ -361,7 +363,7 @@ function render(){
  if(G&&rows.length)LH='<div class="gal">'+rows.map(function(f){
   var s=STATE[f.id]||'';var c=COLORS[(f.y+f.fr.length)%COLORS.length];
   var bd=s?'<span class="bdg '+s+'">'+({vu:'✓ Vu',avoir:'À voir',non:'✗'})[s]+'</span>':'';
-  var t='<button class="tile'+(SEL===f.id?' sel':'')+(s?' s-'+s:'')+'" data-tile="'+f.id+'"><div class="pz" data-pk="'+f.id+'" style="background:linear-gradient(150deg,'+c+','+c+'99)">'+esc(initials(f.fr))+bd+'</div><div class="tt">'+esc(f.fr)+'</div><div class="ty">'+f.y+' · '+f.age+' ans</div></button>';
+  var t='<button class="tile'+(SEL===f.id?' sel':'')+(s?' s-'+s:'')+'" data-tile="'+f.id+'"><div class="pz" data-pk="'+f.id+'" style="background:linear-gradient(150deg,'+c+','+c+'99)">'+esc(initials(f.fr))+bd+'</div><div class="tt">'+esc(f.fr)+'</div><div class="ty">'+f.y+' · '+f.age+' ans'+(f.nas?' · 📀':'')+'</div></button>';
   return SEL===f.id?t+'<div class="gdet">'+card(f)+'</div>':t;
  }).join('')+'</div>';
  document.getElementById('list').innerHTML=LH;
