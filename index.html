@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Films à voir de 9 à 12 ans</title>
-<style id="css">
+<style>
 :root{--bg:#f6f5f0;--card:#fff;--ink:#1d1d1b;--mute:#6b6a64;--line:#e4e2da;--acc:#9bbf1f;--accd:#5f7a0c;--vu:#2e7d32;--av:#1565c0;--non:#9e9e9e}
 @media (prefers-color-scheme:dark){:root{--bg:#141412;--card:#1e1e1b;--ink:#eeede8;--mute:#a3a29b;--line:#33332e;--acc:#a6c93a;--accd:#c4e25a;--vu:#66bb6a;--av:#64b5f6;--non:#8a8a8a}}
 *{box-sizing:border-box}
@@ -92,16 +92,36 @@ footer a{color:inherit}
  .links{flex-wrap:nowrap}
 }
 .links{display:flex;gap:6px;flex-wrap:wrap}
+
+.who{font-size:13px;margin:4px 0 8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.login{display:flex;gap:6px;width:100%}
+.login input,.sinput{flex:1;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink);font-size:16px;width:100%}
+.sinput{margin-bottom:8px}
+.hint{font-size:12px;color:var(--mute);padding:4px 0}
+.linkb{border:0;background:none;color:var(--accd);font:inherit;text-decoration:underline;cursor:pointer;padding:0}
+body.reqmode #ages,body.reqmode #sts,body.reqmode #q{display:none}
+.reqtop{margin-bottom:10px}
+.rndb.big{padding:9px 16px;font-size:14px}
+.rndb[disabled]{opacity:.5}
+.rbadge{display:inline-block;margin-top:5px;color:#fff;border-radius:6px;font-size:12px;font-weight:600;padding:2px 8px}
+main.r .head{display:none!important}
+@media (min-width:980px){main.r .row{display:grid;grid-template-columns:58px 1fr;gap:4px 12px}main.r .poster{grid-row:1;width:58px;height:84px}main.r .acts{display:flex;grid-column:1/-1}main.r .links{flex-wrap:wrap}}
+.sres{max-height:52vh;overflow:auto}
+.sitem{display:flex;gap:10px;align-items:center;padding:7px 0;border-bottom:1px solid var(--line)}
+.sitem .sp{width:44px;height:64px;border-radius:6px;background:var(--line);flex:none;background-size:cover;background-position:center}
+.sitem .si{flex:1;font-size:13.5px;line-height:1.3}
 </style>
 </head>
 <body>
 <header>
  <h1>🎬 Films à voir de 9 à 12 ans</h1>
  <div class="sub">D'après l'index par âge de « Les 200 films à voir avant d'être grand » (Philippe Besnier)</div>
+ <div id="who" class="who"></div>
  <input id="q" type="search" placeholder="Rechercher un titre, un réalisateur, une année…">
  <div class="chips" id="ages"></div>
  <div class="chips" id="sts"></div>
- <div class="stats"><span><button id="rnd" class="rndb">🎲 Film au hasard</button><button id="vw" class="rndb">▦ Galerie</button><span id="count"></span></span><span id="save"></span></div>
+ <div class="chips"><button id="rnd" class="rndb">🎲 Film au hasard</button><button id="vw" class="rndb">▦ Galerie</button><button id="rq" class="rndb">🙋 Demandes</button></div>
+ <div class="stats"><span id="count"></span><span id="save"></span></div>
 </header>
 <main>
  <div class="head"><span>Affiche</span><span>Titre (FR / original)</span><span>Année</span><span>Réalisateur</span><span>Âge</span><span>Liens</span><span>Statut</span></div>
@@ -313,142 +333,231 @@ footer a{color:inherit}
 [12,"West Side Story","",1961,"Robert Wise, Jerome Robbins"]
 ]
 </script>
-<script id="state" type="application/json">{}</script>
-<script id="app">
+<script id="nas" type="application/json">["Harry Potter à l'école des sorciers", "Mon oncle", "Un jour sans fin", "Butch Cassidy et le Kid", "Goldfinger", "Jeux dangereux", "Sister Act", "Ant-Man", "Batman", "La Mort aux trousses", "Le Seigneur des anneaux : La Communauté de l'anneau", "Spider-Man 2", "Danse avec les loups", "Le Magnifique", "Men in Black", "Pirates des Caraïbes : La Malédiction du Black Pearl", "West Side Story", "Les Aventures du baron de Münchausen", "Les Aventuriers de l'Arche perdue", "Monty Python : Sacré Graal !"]</script>
+<script>
 (function(){
-var NAS=["Harry Potter à l'école des sorciers", "Mon oncle", "Un jour sans fin", "Butch Cassidy et le Kid", "Goldfinger", "Jeux dangereux", "Sister Act", "Ant-Man", "Batman", "La Mort aux trousses", "Le Seigneur des anneaux : La Communauté de l'anneau", "Spider-Man 2", "Danse avec les loups", "Le Magnifique", "Men in Black", "Pirates des Caraïbes : La Malédiction du Black Pearl", "West Side Story", "Les Aventures du baron de Münchausen", "Les Aventuriers de l'Arche perdue", "Monty Python : Sacré Graal !"];
-var FILMS=JSON.parse(document.getElementById('films').textContent).map(function(f,i){return{id:i,age:f[0],fr:f[1],or:f[2]||f[1],y:f[3],d:f[4],chk:!!f[5],nas:NAS.indexOf(f[1])>=0}});
-var STATE={};try{STATE=JSON.parse(document.getElementById('state').textContent)||{}}catch(e){}
+var API='';
+var TMDB_KEY='76560d111980999307aa916fc86a4935',IMG='https://image.tmdb.org/t/p/w342';
+var NAS=JSON.parse(document.getElementById('nas').textContent);
+var FILMS=JSON.parse(document.getElementById('films').textContent).map(function(f,i){return{id:i,age:f[0],fr:f[1],or:f[2]||f[1],y:f[3],d:f[4],nas:NAS.indexOf(f[1])>=0}});
 var LS='films912-';
 function lsGet(k,d){try{var v=localStorage.getItem(LS+k);return v==null?d:JSON.parse(v)}catch(e){return d}}
 function lsSet(k,v){try{localStorage.setItem(LS+k,JSON.stringify(v))}catch(e){}}
-var shared=false,art=null,pending=null,timer=null,card=null,VIS=[],curId=null,OV=null,SEL=lsGet('sel',null),OPEN=false;
-var local=lsGet('state',null);if(local&&!Object.keys(STATE).length)STATE=local;
-var ui=lsGet('ui',{age:0,st:'all',q:''});
-var STS=[['vu','✓ Vu'],['avoir','À voir'],['non','Pas intéressé']];
-var COLORS=['#5f7a0c','#1565c0','#6a1b9a','#c62828','#ef6c00','#00838f','#4e342e','#37474f','#ad1457','#2e7d32'];
-function esc(s){return String(s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function pkey(f){return f.fr+'|'+f.y}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
 function enc(s){return encodeURIComponent(s)}
 function norm(s){return String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'')}
+function $(id){return document.getElementById(id)}
+
+var ui=lsGet('ui',{age:0,st:'all',q:'',view:'list'});
+var STATE=lsGet('state2',null);
+if(!STATE){STATE={};var old=lsGet('state',{});Object.keys(old).forEach(function(k){if(FILMS[k]&&old[k])STATE[pkey(FILMS[k])]=old[k]})}
+var REQ=lsGet('req',[]),CODE=lsGet('code',''),ME=lsGet('me',null);
+var SEL=lsGet('sel',null),OPEN=false,curId=null,OV=null,VIS=[];
+var STS=[['vu','✓ Vu'],['avoir','À voir'],['non','Pas intéressé']];
+var RST={demande:['🙋 Demandé','#c77700'],encours:['⏳ En cours','#1565c0'],dispo:['✅ Disponible','#2e7d32'],refuse:['🚫 Pas possible','#757575']};
+var COLORS=['#5f7a0c','#1565c0','#6a1b9a','#c62828','#ef6c00','#00838f','#4e342e','#37474f','#ad1457','#2e7d32'];
+function st(f){return STATE[pkey(f)]||''}
+function color(f){return COLORS[(f.y+f.fr.length)%COLORS.length]}
 function initials(t){var w=t.replace(/^(Le|La|Les|L'|The|Un|Une)\s*/i,'').split(/[\s,:'-]+/).filter(function(x){return x&&!/^(et|de|du|des|la|le|les|l|d|a|à|of|the|and)$/i.test(x)});return (w[0]||'?')[0].toUpperCase()+((w[1]||'')[0]||'').toUpperCase()}
+function reqFor(f){for(var i=0;i<REQ.length;i++){var r=REQ[i];if(r.titre===f.fr&&String(r.annee)===String(f.y))return r}return null}
+function setSave(t){$('save').textContent=t||''}
+var saveT=null;function flash(t){setSave(t);clearTimeout(saveT);saveT=setTimeout(function(){setSave('')},2500)}
+
+/* ---------- API (Google Sheet) ---------- */
+function api(action,data){
+ if(!API)return Promise.reject(new Error('noapi'));
+ if(action==='load')return fetch(API+'?action=load&code='+enc(CODE)).then(function(r){return r.json()});
+ return fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(Object.assign({action:action,code:CODE},data||{}))}).then(function(r){return r.json()});
+}
+function sync(){
+ if(!API||!CODE)return Promise.resolve();
+ return api('load').then(function(j){
+  if(!j.ok){if(j.error==='code'){CODE='';ME=null;lsSet('code','');lsSet('me',null);flash('Code inconnu')}render();return}
+  ME=j.user;lsSet('me',ME);
+  STATE={};Object.keys(j.statuts||{}).forEach(function(k){STATE[k]=j.statuts[k].s});lsSet('state2',STATE);
+  REQ=j.demandes||[];lsSet('req',REQ);
+  render();if(OV&&curId!=null)showCard(curId);
+ }).catch(function(){flash('Hors ligne : modifications non synchronisées')});
+}
+function send(action,data){
+ if(!API||!CODE)return Promise.resolve({ok:true,local:true});
+ setSave('Enregistrement…');
+ return api(action,data).then(function(j){if(!j.ok)flash(j.error==='droits'?'Action réservée à l\'admin':'Erreur : '+j.error);else setSave('');return j},function(){flash('Erreur réseau, réessaie');return{ok:false}});
+}
+
+/* ---------- Affiches TMDB ---------- */
+var PC=lsGet('posters',{}),pcT=null,Q=[],RUN=0,IO=null;
+function savePC(){clearTimeout(pcT);pcT=setTimeout(function(){lsSet('posters',PC)},800)}
+function applyP(el,p){if(p){el.style.backgroundImage='url('+IMG+p+')';el.classList.add('has')}}
+function tmdb(q,y){return fetch('https://api.themoviedb.org/3/search/movie?api_key='+TMDB_KEY+'&include_adult=false&language=fr-FR&query='+enc(q)+(y?'&year='+y:'')).then(function(r){if(!r.ok)throw new Error(r.status);return r.json()}).then(function(j){return j.results||[]})}
+function findPoster(f){
+ var tries=[[f.or,f.y],[f.fr,f.y],[f.or,f.y-1],[f.or,f.y+1],[f.or,0]];
+ function next(i){if(i>=tries.length)return Promise.resolve('');return tmdb(tries[i][0],tries[i][1]).then(function(r){r=r.filter(function(x){return x.poster_path});return r.length?r[0].poster_path:next(i+1)})}
+ return next(0);
+}
+function pump(){while(RUN<4&&Q.length){var f=Q.shift(),k=pkey(f);if(k in PC){paint(f);continue}RUN++;(function(f,k){findPoster(f).then(function(p){PC[k]=p;savePC();paint(f)},function(){}).then(function(){RUN--;pump()})})(f,k)}}
+function paint(f){var p=PC[pkey(f)];if(!p)return;document.querySelectorAll('[data-pk="'+f.id+'"]').forEach(function(el){applyP(el,p)})}
+function want(id){var f=FILMS[id];if(!f)return;if(pkey(f) in PC){paint(f);return}if(Q.indexOf(f)<0){Q.push(f);pump()}}
+function hydrate(){
+ if(!IO&&'IntersectionObserver' in window)IO=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){IO.unobserve(e.target);want(+e.target.dataset.pk)}})},{rootMargin:'600px'});
+ document.querySelectorAll('[data-pk]:not([data-hy])').forEach(function(el){el.setAttribute('data-hy','1');var f=FILMS[+el.dataset.pk],k=pkey(f);if(PC[k])applyP(el,PC[k]);else if(!(k in PC)){if(IO)IO.observe(el);else want(f.id)}});
+ document.querySelectorAll('[data-img]:not([data-hy])').forEach(function(el){el.setAttribute('data-hy','1');applyP(el,el.dataset.img)});
+}
+
+/* ---------- Rendu ---------- */
+function who(){
+ var w=$('who');if(!API){w.innerHTML='';return}
+ if(ME&&CODE)w.innerHTML='<span>👤 '+esc(ME.nom)+(ME.role==='admin'?' (admin)':'')+'</span> <button class="linkb" data-logout="1">changer</button>';
+ else w.innerHTML='<form id="login" class="login"><input id="codein" autocomplete="off" placeholder="Ton code famille"><button class="rndb" type="submit">Entrer</button></form><div class="hint">Sans code, tes statuts restent seulement sur cet appareil.</div>';
+}
 function chips(){
- var a=document.getElementById('ages');a.innerHTML=[0,9,10,11,12].map(function(x){return'<button class="chip'+(ui.age===x?' on':'')+'" data-age="'+x+'">'+(x?x+' ans':'Tous âges')+'</button>'}).join('');
- var counts={all:FILMS.length,vu:0,avoir:0,non:0,none:0,nas:0};FILMS.forEach(function(f){counts[STATE[f.id]||'none']++;if(f.nas)counts.nas++});
- var s=document.getElementById('sts');s.innerHTML=[['all','Tous'],['nas','📀 À la maison'],['avoir','À voir'],['vu','Vus'],['none','Sans statut'],['non','Pas intéressé']].map(function(x){return'<button class="chip'+(ui.st===x[0]?' on':'')+'" data-st="'+x[0]+'">'+x[1]+' ('+counts[x[0]]+')</button>'}).join('');
+ $('ages').innerHTML=[0,9,10,11,12].map(function(x){return'<button class="chip'+(ui.age===x?' on':'')+'" data-age="'+x+'">'+(x?x+' ans':'Tous âges')+'</button>'}).join('');
+ var c={all:FILMS.length,vu:0,avoir:0,non:0,none:0,nas:0};FILMS.forEach(function(f){c[st(f)||'none']++;if(f.nas)c.nas++});
+ $('sts').innerHTML=[['all','Tous'],['nas','📀 À la maison'],['avoir','À voir'],['vu','Vus'],['none','Sans statut'],['non','Pas intéressé']].map(function(x){return'<button class="chip'+(ui.st===x[0]?' on':'')+'" data-st="'+x[0]+'">'+x[1]+' ('+c[x[0]]+')</button>'}).join('');
+ var open=REQ.filter(function(r){return r.statut==='demande'||r.statut==='encours'}).length;
+ $('vw').textContent=ui.view==='gal'?'☰ Liste':'▦ Galerie';
+ $('rq').textContent=ui.view==='req'?'🎬 Films':'🙋 Demandes'+(open?' ('+open+')':'');
+}
+function card(f){
+ var s=st(f),c=color(f),r=reqFor(f);
+ var orig=f.or!==f.fr?'<div class="or">'+esc(f.or)+'</div>':'';
+ var extra=(f.nas?'<span class="nasb">📀 À la maison</span>':'')+(r?'<span class="nasb" style="color:'+RST[r.statut][1]+'">'+RST[r.statut][0]+'</span>':'');
+ var imdb='https://www.imdb.com/find/?s=tt&q='+enc(f.or+' '+f.y),sc='https://www.senscritique.com/search?query='+enc(f.fr),rt='https://www.rottentomatoes.com/search?search='+enc(f.or),aff='https://www.google.com/search?tbm=isch&q='+enc('affiche film '+f.fr+' '+f.y);
+ var ask=(API&&!f.nas&&!r)?'<button class="lnk" data-ask="'+f.id+'">🙋 Demander</button>':'';
+ return '<div class="row'+(s?' s-'+s:'')+'">'+
+  '<a class="poster" data-pk="'+f.id+'" href="'+aff+'" target="_blank" rel="noopener" style="background:linear-gradient(150deg,'+c+','+c+'99)">'+esc(initials(f.fr))+'<small>affiche ↗</small></a>'+
+  '<div class="t"><div class="fr">'+esc(f.fr)+'</div>'+orig+'<div class="meta metam"><span class="age">'+f.age+' ans</span>'+f.y+' · '+esc(f.d)+extra+'</div></div>'+
+  '<div class="meta y">'+f.y+'</div><div class="meta d">'+esc(f.d)+extra+'</div><div class="agec"><span class="age">'+f.age+' ans</span></div>'+
+  '<div class="acts"><div class="links"><a class="lnk" href="'+imdb+'" target="_blank" rel="noopener">IMDb</a><a class="lnk" href="'+sc+'" target="_blank" rel="noopener">SensCritique</a><a class="lnk" href="'+rt+'" target="_blank" rel="noopener">Rotten 🍅</a><button class="lnk cp" data-copy="'+f.id+'">📋 Copier</button>'+ask+'</div>'+
+  '<div class="st">'+STS.map(function(x){return'<button data-id="'+f.id+'" data-s="'+x[0]+'" class="'+(s===x[0]?'on':'')+'">'+x[1]+'</button>'}).join('')+'</div></div></div>';
+}
+function tile(f){
+ var s=st(f),c=color(f);
+ var bd=s?'<span class="bdg '+s+'">'+({vu:'✓ Vu',avoir:'À voir',non:'✗'})[s]+'</span>':'';
+ return '<button class="tile'+(SEL===f.id?' sel':'')+(s?' s-'+s:'')+'" data-tile="'+f.id+'"><div class="pz" data-pk="'+f.id+'" style="background:linear-gradient(150deg,'+c+','+c+'99)">'+esc(initials(f.fr))+bd+'</div><div class="tt">'+esc(f.fr)+'</div><div class="ty">'+f.y+' · '+f.age+' ans'+(f.nas?' · 📀':'')+'</div></button>';
+}
+function reqView(){
+ var H='<div class="reqtop"><button class="rndb big" data-newreq="1">+ Demander un film</button></div>';
+ if(!API)return H.replace('data-newreq','disabled data-x')+'<div class="empty">La synchro n\'est pas encore branchée.</div>';
+ if(!ME)return '<div class="empty">Entre ton code famille en haut de la page pour voir et faire des demandes.</div>';
+ if(!REQ.length)return H+'<div class="empty">Aucune demande pour l\'instant.</div>';
+ var order={demande:0,encours:1,dispo:2,refuse:3};
+ var list=REQ.slice().sort(function(a,b){return(order[a.statut]-order[b.statut])||(b.date>a.date?1:-1)});
+ var admin=ME.role==='admin';
+ return H+list.map(function(r){
+  var rs=RST[r.statut]||RST.demande,mine=r.par===ME.nom;
+  var adm=admin?'<div class="st">'+Object.keys(RST).map(function(k){return'<button data-rq="'+esc(r.id)+'" data-rs="'+k+'" class="'+(r.statut===k?'on':'')+'" style="'+(r.statut===k?'background:'+RST[k][1]+';color:#fff':'')+'">'+RST[k][0]+'</button>'}).join('')+'</div>':'';
+  var del=(admin||(mine&&r.statut==='demande'))?'<button class="lnk" data-rdel="'+esc(r.id)+'">🗑 Retirer</button>':'';
+  var tm=r.tmdb?'<a class="lnk" href="https://www.themoviedb.org/movie/'+enc(r.tmdb)+'" target="_blank" rel="noopener">Fiche TMDB</a>':'';
+  return '<div class="row req"><div class="poster"'+(r.affiche?' data-img="'+esc(r.affiche)+'"':'')+' style="background:linear-gradient(150deg,#37474f,#37474f99)">'+esc(initials(r.titre))+'</div>'+
+   '<div class="t"><div class="fr">'+esc(r.titre)+'</div>'+(r.orig&&r.orig!==r.titre?'<div class="or">'+esc(r.orig)+'</div>':'')+
+   '<div class="meta">'+esc(r.annee)+' · demandé par '+esc(r.par)+' le '+esc(String(r.date).slice(0,10))+'</div>'+(r.note?'<div class="meta">« '+esc(r.note)+' »</div>':'')+
+   '<div><span class="rbadge" style="background:'+rs[1]+'">'+rs[0]+'</span></div></div>'+
+   '<div class="acts"><div class="links">'+tm+del+'</div>'+adm+'</div></div>';
+ }).join('');
 }
 function render(){
- chips();
+ who();chips();
+ document.body.classList.toggle('reqmode',ui.view==='req');
+ var main=document.querySelector('main');main.classList.toggle('g',ui.view==='gal');main.classList.toggle('r',ui.view==='req');
+ if(ui.view==='req'){$('count').textContent=REQ.length+' demande'+(REQ.length>1?'s':'');$('list').innerHTML=reqView();hydrate();return}
  var q=norm(ui.q||'');
  var rows=FILMS.filter(function(f){
   if(ui.age&&f.age!==ui.age)return false;
-  var s=STATE[f.id]||'none';if(ui.st==='nas'){if(!f.nas)return false}else if(ui.st!=='all'&&s!==ui.st)return false;
+  var s=st(f)||'none';if(ui.st==='nas'){if(!f.nas)return false}else if(ui.st!=='all'&&s!==ui.st)return false;
   if(q&&norm(f.fr+' '+f.or+' '+f.d+' '+f.y).indexOf(q)<0)return false;return true});
- document.getElementById('count').textContent=rows.length+' film'+(rows.length>1?'s':'')+' affiché'+(rows.length>1?'s':'');
- VIS=rows;var LH=rows.length?rows.map(card=function(f){
-  var s=STATE[f.id]||'';var c=COLORS[(f.y+f.fr.length)%COLORS.length];
-  var orig=f.or!==f.fr?'<div class="or">'+esc(f.or)+'</div>':'';
-  var chk=f.chk?'<span class="chk" title="Plusieurs versions existent : vérifier laquelle le livre recommande">⚠ version à vérifier</span>':'';if(f.nas)chk+='<span class="nasb">📀 À la maison</span>';
-  var imdb='https://www.imdb.com/find/?s=tt&q='+enc(f.or+' '+f.y);
-  var sc='https://www.senscritique.com/search?query='+enc(f.fr);
-  var rt='https://www.rottentomatoes.com/search?search='+enc(f.or);
-  var aff='https://www.google.com/search?tbm=isch&q='+enc('affiche film '+f.fr+' '+f.y);
-  return '<div class="row'+(s?' s-'+s:'')+'">'+
-   '<a class="poster" data-pk="'+f.id+'" href="'+aff+'" target="_blank" rel="noopener" style="background:linear-gradient(150deg,'+c+','+c+'99)" title="Voir l\'affiche">'+esc(initials(f.fr))+'<small>affiche ↗</small></a>'+
-   '<div class="t"><div class="fr">'+esc(f.fr)+'</div>'+orig+'<div class="meta metam"><span class="age">'+f.age+' ans</span>'+f.y+' · '+esc(f.d)+chk+'</div></div>'+
-   '<div class="meta y">'+f.y+'</div><div class="meta d">'+esc(f.d)+chk+'</div><div class="agec"><span class="age">'+f.age+' ans</span></div>'+
-   '<div class="acts"><div class="links"><a class="lnk" href="'+imdb+'" target="_blank" rel="noopener">IMDb</a><a class="lnk" href="'+sc+'" target="_blank" rel="noopener">SensCritique</a><a class="lnk" href="'+rt+'" target="_blank" rel="noopener">Rotten 🍅</a><button class="lnk cp" data-copy="'+f.id+'">📋 Copier</button></div>'+
-   '<div class="st">'+STS.map(function(x){return'<button data-id="'+f.id+'" data-s="'+x[0]+'" class="'+(s===x[0]?'on':'')+'">'+x[1]+'</button>'}).join('')+'</div></div></div>';
- }).join(''):'<div class="empty">Aucun film ne correspond.</div>';
- var G=ui.view==='gal';
- if(G&&rows.length)LH='<div class="gal">'+rows.map(function(f){
-  var s=STATE[f.id]||'';var c=COLORS[(f.y+f.fr.length)%COLORS.length];
-  var bd=s?'<span class="bdg '+s+'">'+({vu:'✓ Vu',avoir:'À voir',non:'✗'})[s]+'</span>':'';
-  var t='<button class="tile'+(SEL===f.id?' sel':'')+(s?' s-'+s:'')+'" data-tile="'+f.id+'"><div class="pz" data-pk="'+f.id+'" style="background:linear-gradient(150deg,'+c+','+c+'99)">'+esc(initials(f.fr))+bd+'</div><div class="tt">'+esc(f.fr)+'</div><div class="ty">'+f.y+' · '+f.age+' ans'+(f.nas?' · 📀':'')+'</div></button>';
-  return SEL===f.id?t+'<div class="gdet">'+card(f)+'</div>':t;
- }).join('')+'</div>';
- document.getElementById('list').innerHTML=LH;
- document.querySelector('main').classList.toggle('g',G);
- document.getElementById('vw').textContent=G?'☰ Liste':'▦ Galerie';
- hydrate();
+ VIS=rows;
+ $('count').textContent=rows.length+' film'+(rows.length>1?'s':'')+' affiché'+(rows.length>1?'s':'');
+ var H;
+ if(!rows.length)H='<div class="empty">Aucun film ne correspond.</div>';
+ else if(ui.view==='gal')H='<div class="gal">'+rows.map(function(f){return SEL===f.id?tile(f)+'<div class="gdet">'+card(f)+'</div>':tile(f)}).join('')+'</div>';
+ else H=rows.map(card).join('');
+ $('list').innerHTML=H;hydrate();
  if(OPEN){OPEN=false;var gd=document.querySelector('.gdet');if(gd)try{gd.scrollIntoView({block:'nearest',behavior:'smooth'})}catch(e){}}
 }
-function showCard(id){
- curId=id;lsSet('rnd',id);var f=FILMS[id];
- if(!OV){OV=document.createElement('div');OV.className='ov';OV.addEventListener('click',function(e){if(e.target===OV)closeCard()});document.body.appendChild(OV)}
- OV.innerHTML='<div class="mod"><h2>🎲 Et si on regardait…</h2>'+card(f)+'<div class="mbtn"><button data-rnd="1" class="p">🎲 Un autre</button><button data-close="1">Fermer</button></div></div>';
- hydrate();
+
+/* ---------- Fenêtres ---------- */
+function overlay(html){
+ if(!OV){OV=document.createElement('div');OV.className='ov';OV.addEventListener('click',function(e){if(e.target===OV)closeOV()});document.body.appendChild(OV)}
+ OV.innerHTML='<div class="mod">'+html+'</div>';hydrate();
 }
-function closeCard(){if(OV){OV.remove();OV=null}curId=null;lsSet('rnd',null)}
+function closeOV(){if(OV){OV.remove();OV=null}curId=null;lsSet('rnd',null)}
+function showCard(id){curId=id;lsSet('rnd',id);overlay('<h2>🎲 Et si on regardait…</h2>'+card(FILMS[id])+'<div class="mbtn"><button data-rnd="1" class="p">🎲 Un autre</button><button data-close="1">Fermer</button></div>')}
 function pick(){
- var pool=VIS.filter(function(f){var s=STATE[f.id]||'';return ui.st!=='all'?true:(s!=='vu'&&s!=='non')});
- if(!pool.length)pool=VIS.filter(function(f){return STATE[f.id]!=='non'});
+ var pool=VIS.filter(function(f){var s=st(f);return ui.st!=='all'?true:(s!=='vu'&&s!=='non')});
+ if(!pool.length)pool=VIS.filter(function(f){return st(f)!=='non'});
  if(!pool.length)pool=VIS;if(!pool.length)return;
  if(pool.length>1&&curId!=null)pool=pool.filter(function(f){return f.id!==curId});
  showCard(pool[Math.floor(Math.random()*pool.length)].id);
 }
-var TMDB_KEY='76560d111980999307aa916fc86a4935',IMG='https://image.tmdb.org/t/p/w342';
-var PC=lsGet('posters',{}),pcT=null,Q=[],RUN=0,IO=null;
-function pkey(f){return f.fr+'|'+f.y}
-function savePC(){clearTimeout(pcT);pcT=setTimeout(function(){lsSet('posters',PC)},800)}
-function apply(el,p){if(p){el.style.backgroundImage='url('+IMG+p+')';el.classList.add('has')}}
-function search(q,y){var u='https://api.themoviedb.org/3/search/movie?api_key='+TMDB_KEY+'&include_adult=false&language=fr-FR&query='+enc(q)+(y?'&year='+y:'');
- return fetch(u).then(function(r){if(!r.ok)throw new Error(r.status);return r.json()}).then(function(j){var r=(j.results||[]).filter(function(x){return x.poster_path});return r.length?r[0].poster_path:null})}
-function findPoster(f){
- var tries=[[f.or,f.y],[f.fr,f.y],[f.or,f.y-1],[f.or,f.y+1],[f.or,0]];
- function next(i){if(i>=tries.length)return Promise.resolve('');var t=tries[i];return search(t[0],t[1]).then(function(p){return p||next(i+1)})}
- return next(0);
+var SR=[],srT=null;
+function newReq(){
+ curId=null;
+ overlay('<h2>🙋 Demander un film</h2><input id="tsearch" class="sinput" type="search" placeholder="Titre du film…" autocomplete="off"><input id="tnote" class="sinput" placeholder="Un petit mot ? (facultatif)" maxlength="300"><div id="sres" class="sres"><div class="hint">Tape au moins 2 lettres.</div></div><div class="mbtn"><button data-close="1">Fermer</button></div>');
+ setTimeout(function(){var i=$('tsearch');if(i)i.focus()},50);
 }
-function pump(){
- while(RUN<4&&Q.length){var f=Q.shift();var k=pkey(f);if(k in PC){paint(f);continue}RUN++;
-  (function(f,k){findPoster(f).then(function(p){PC[k]=p;savePC();paint(f)},function(){}).then(function(){RUN--;pump()})})(f,k)}
+function searchReq(q){
+ var box=$('sres');if(!box)return;
+ if(q.length<2){box.innerHTML='<div class="hint">Tape au moins 2 lettres.</div>';return}
+ box.innerHTML='<div class="hint">Recherche…</div>';
+ tmdb(q,0).then(function(res){
+  SR=res.slice(0,10);if(!$('sres'))return;
+  $('sres').innerHTML=SR.length?SR.map(function(m,i){var y=(m.release_date||'').slice(0,4);
+   return '<div class="sitem"><div class="sp"'+(m.poster_path?' data-img="'+esc(m.poster_path)+'"':'')+'></div><div class="si"><b>'+esc(m.title)+'</b>'+(m.original_title&&m.original_title!==m.title?'<br><i>'+esc(m.original_title)+'</i>':'')+'<br><span class="meta">'+esc(y||'année ?')+'</span></div><button class="rndb" data-pick="'+i+'">Demander</button></div>'}).join(''):'<div class="hint">Aucun résultat.</div>';
+  hydrate();
+ },function(){if($('sres'))$('sres').innerHTML='<div class="hint">Recherche impossible pour le moment.</div>'});
 }
-function paint(f){var p=PC[pkey(f)];if(!p)return;document.querySelectorAll('[data-pk="'+f.id+'"]').forEach(function(el){apply(el,p)})}
-function want(id){var f=FILMS[id];if(!f)return;if(pkey(f) in PC){paint(f);return}if(Q.indexOf(f)<0){Q.push(f);pump()}}
-function hydrate(){
- if(!IO&&'IntersectionObserver' in window)IO=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){IO.unobserve(e.target);want(+e.target.dataset.pk)}})},{rootMargin:'600px'});
- document.querySelectorAll('[data-pk]:not([data-hy])').forEach(function(el){el.setAttribute('data-hy','1');var f=FILMS[+el.dataset.pk];var k=pkey(f);if(PC[k])apply(el,PC[k]);else if(!(k in PC)){if(IO)IO.observe(el);else want(f.id)}});
+function addReq(d){
+ var dup=REQ.filter(function(r){return r.statut!=='refuse'&&(d.tmdb&&String(r.tmdb)===String(d.tmdb)||(r.titre===d.titre&&String(r.annee)===String(d.annee)))})[0];
+ if(dup){flash('Déjà demandé par '+dup.par);return}
+ send('addRequest',d).then(function(j){if(j.ok){flash('Demande envoyée ✓');closeOV();sync()}});
 }
+
+/* ---------- Copier ---------- */
 function copyText(t,btn){
  function ok(){btn.classList.add('ok');btn.textContent='✓ Copié';setTimeout(function(){btn.classList.remove('ok');btn.textContent='📋 Copier'},1400)}
  function fb(){try{var ta=document.createElement('textarea');ta.value=t;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);ok()}catch(e){btn.textContent=t}}
  try{navigator.clipboard.writeText(t).then(ok,fb)}catch(e){fb()}
 }
-function buildDoc(){
- var j=function(id){return document.getElementById(id).textContent};
- var safe=function(s){return s.replace(/<\/script/gi,'<\\/script')};
- return '<!DOCTYPE html>\n<html lang="fr">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1">\n<title>'+esc(document.title)+'</title>\n<style id="css">'+j('css')+'</style>\n</head>\n<body>\n'+BODY+'\n<script id="films" type="application/json">'+safe(j('films'))+'<\/script>\n<script id="state" type="application/json">'+safe(JSON.stringify(STATE))+'<\/script>\n<script id="app">'+safe(j('app'))+'<\/script>\n</body>\n</html>';
-}
-var BODY=document.querySelector('header').outerHTML.replace(/<div class="chips" id="ages">[\s\S]*?<\/div>/,'<div class="chips" id="ages"></div>').replace(/<div class="chips" id="sts">[\s\S]*?<\/div>/,'<div class="chips" id="sts"></div>').replace(/<span id="count">[^<]*<\/span>/,'<span id="count"></span>').replace(/<span id="save">[^<]*<\/span>/,'<span id="save"></span>')+'\n<main>\n <div class="head"><span>Affiche</span><span>Titre (FR / original)</span><span>Année</span><span>Réalisateur</span><span>Âge</span><span>Liens</span><span>Statut</span></div>\n <div id="list"></div>\n</main>';
-function setSave(t){document.getElementById('save').textContent=t}
-function persist(){
- lsSet('state',STATE);
- if(!shared||!art)return;
- setSave('Enregistrement…');clearTimeout(timer);
- timer=setTimeout(function(){
-  lsSet('ui',ui);try{lsSet('scroll',window.scrollY)}catch(e){}
-  art.publish(buildDoc()).then(function(){setSave('✓ Enregistré')},function(e){
-   var c=e&&(e.code||e.message||'');
-   if(/not_granted|not_writer/.test(c)){shared=false;setSave('Statuts gardés sur cet appareil')}else setSave('');
-  });
- },1800);
-}
+
+/* ---------- Événements ---------- */
 document.addEventListener('click',function(e){
- var b=e.target.closest('button');if(!b)return;
- if(b.id==='rnd'||b.dataset.rnd){pick();return}
- if(b.dataset.close){closeCard();return}
+ var b=e.target.closest('button');if(!b||(b.form&&b.type==='submit'))return;
+ var d=b.dataset;
+ if(b.id==='rnd'||d.rnd){if(ui.view==='req'){ui.view='list';render()}pick();return}
+ if(d.close){closeOV();return}
  if(b.id==='vw'){ui.view=ui.view==='gal'?'list':'gal';lsSet('ui',ui);render();return}
- if(b.dataset.tile!=null){var tid=+b.dataset.tile;SEL=SEL===tid?null:tid;OPEN=SEL!=null;lsSet('sel',SEL);render();return}
- if(b.dataset.age!=null){ui.age=+b.dataset.age;lsSet('ui',ui);render();return}
- if(b.dataset.st){ui.st=b.dataset.st;lsSet('ui',ui);render();return}
- if(b.dataset.copy!=null){copyText(FILMS[+b.dataset.copy].fr,b);return}
- if(b.dataset.s){var id=b.dataset.id;STATE[id]=STATE[id]===b.dataset.s?undefined:b.dataset.s;if(!STATE[id])delete STATE[id];render();if(OV)showCard(curId);persist()}
+ if(b.id==='rq'){ui.view=ui.view==='req'?'list':'req';lsSet('ui',ui);render();if(ui.view==='req')sync();return}
+ if(d.logout){CODE='';ME=null;lsSet('code','');lsSet('me',null);render();return}
+ if(d.tile!=null){var t=+d.tile;SEL=SEL===t?null:t;OPEN=SEL!=null;lsSet('sel',SEL);render();return}
+ if(d.age!=null){ui.age=+d.age;lsSet('ui',ui);render();return}
+ if(d.st){ui.st=d.st;lsSet('ui',ui);render();return}
+ if(d.copy!=null){copyText(FILMS[+d.copy].fr,b);return}
+ if(d.newreq){if(!ME){flash('Entre d\'abord ton code famille');return}newReq();return}
+ if(d.pick!=null){var m=SR[+d.pick];if(!m)return;addReq({titre:m.title,orig:m.original_title||'',annee:(m.release_date||'').slice(0,4),tmdb:m.id,affiche:m.poster_path||'',note:($('tnote')||{}).value||''});return}
+ if(d.ask!=null){if(!ME){flash('Entre d\'abord ton code famille');return}var f=FILMS[+d.ask];addReq({titre:f.fr,orig:f.or,annee:f.y,tmdb:'',affiche:PC[pkey(f)]||'',note:'Liste du livre ('+f.age+' ans)'});return}
+ if(d.rq){var r0=REQ.filter(function(x){return x.id===d.rq})[0];if(r0)r0.statut=d.rs;render();send('updateRequest',{id:d.rq,statut:d.rs}).then(sync);return}
+ if(d.rdel){REQ=REQ.filter(function(x){return x.id!==d.rdel});render();send('deleteRequest',{id:d.rdel}).then(sync);return}
+ if(d.s){var f2=FILMS[+d.id],k=pkey(f2),v=STATE[k]===d.s?'':d.s;if(v)STATE[k]=v;else delete STATE[k];lsSet('state2',STATE);render();if(OV&&curId!=null)showCard(curId);send('setStatus',{key:k,titre:f2.fr,statut:v});return}
 });
-var qi=document.getElementById('q');qi.value=ui.q||'';
-qi.addEventListener('input',function(){ui.q=qi.value;lsSet('ui',ui);render()});
+document.addEventListener('submit',function(e){
+ if(e.target.id!=='login')return;e.preventDefault();
+ var v=($('codein').value||'').trim();if(!v)return;CODE=v;lsSet('code',CODE);setSave('Connexion…');sync();
+});
+document.addEventListener('input',function(e){
+ if(e.target.id==='q'){ui.q=e.target.value;lsSet('ui',ui);render()}
+ if(e.target.id==='tsearch'){clearTimeout(srT);var v=e.target.value.trim();srT=setTimeout(function(){searchReq(v)},400)}
+});
+document.addEventListener('visibilitychange',function(){if(!document.hidden)sync()});
+setInterval(function(){if(!document.hidden)sync()},60000);
+
+$('q').value=ui.q||'';
 render();
 var rr=lsGet('rnd',null);if(rr!=null&&FILMS[rr])showCard(rr);
-var sy=lsGet('scroll',0);if(sy){setTimeout(function(){window.scrollTo(0,sy)},50);lsSet('scroll',0)}
+sync();
 })();
+
 </script>
 </body>
 </html>
