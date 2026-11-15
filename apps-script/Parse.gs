@@ -5,7 +5,7 @@
  */
 
 var VIDEO_EXT = /\.(mkv|mp4|avi|m4v)$/i;
-var JUNK = /(?<![\wÀ-ÿ])(2160p|1080p|1080|720p|576p|540p|480p|4k|4klight|multi|french|truefrench|vff|vf2|vfi|vfq|vof|vostfr|vf|fr|bluray|blu ray|brrip|bdrip|dvdrip|webrip|web|web dl|hdlight|hdrip|hdtv|x264|x265|h264|h265|hevc|av1|remastered|extended|custom|hybrid|ext|uncut|internal|xvid|divx|ac3|aac|dts|proper|repack|imax|director|subforced|yify|mhdgz|eng|open matte|multisub|hd ts|telesync|unrated)(?![\wÀ-ÿ])/i;
+var JUNK = /(?<![\wÀ-ÿ])(2160p|1080p|1080|720p|576p|540p|480p|4k|4klight|multi|french|truefrench|vff|vf2|vfi|vfq|vof|vostfr|vf|fr|bluray|blu ray|brrip|bdrip|dvdrip|webrip|web|web dl|hdlight|hdrip|hdtv|x264|x265|h264|h265|hevc|av1|remastered|extended|custom|hybrid|ext|uncut|internal|xvid|divx|ac3|aac|dts|proper|repack|imax|director|subforced|yify|mhdgz|eng|open matte|multisub|hd ts|telesync|unrated|mutli|wawacity|wawa city|zone telechargement|ec)(?![\wÀ-ÿ])/i;
 var EPISODE = /(S\d{1,2}\s?E\d{1,3}|\d+\s?of\s?\d+|^\d{1,2}\s*-\s|_t\d+$|^[A-Z]\d_t\d+$)/i;
 
 var CAT = { "Films d'animation": 'Animation', 'Cinéma francais': 'Cinéma français', 'Film français': 'Cinéma français', "Films d'horreur": 'Horreur',
@@ -38,7 +38,11 @@ var SERIES = {
   'Arcane': ['Arcane', 2021, ''], 'The.Lord.Of.The.Rings.The.Rings.Of.Power': ['Le Seigneur des anneaux : Les Anneaux de pouvoir', 2022, 'Tolkien'],
   'Star.Wars.Skeleton.Crew': ['Star Wars: Skeleton Crew', 2024, 'Star Wars'], 'Shrinking': ['Shrinking', 2023, ''], 'Paxi': ['Paxi', 0, 'Dessins animés'],
   'Origins.of.Hip-Hop': ['Origins of Hip-Hop', 0, ''], 'Black Mirror': ['Black Mirror', 2011, ''], 'Bref': ['Bref', 2011, ''], 'Dark.Matter': ['Dark Matter', 2024, ''],
-  'Sambre': ['Sambre', 2023, ''], 'Star.Wars.Forces.of.Destiny': ['Star Wars : Forces du destin', 2017, 'Star Wars']
+  'Sambre': ['Sambre', 2023, ''], 'LOL': ['LOL : Qui rit, sort !', 2021, ''], 'DB Super': ['Dragon Ball Super', 2015, 'Animés'],
+  'DBZ': ['Dragon Ball Z', 1989, 'Animés'], 'Saint Seya': ['Saint Seiya : Les Chevaliers du Zodiaque', 1986, 'Animés'],
+  'Full Metal Alchemist': ['Fullmetal Alchemist', 0, 'Animés'], 'Foundation': ['Fondation', 2021, ''], '3 Body Problem': ['3 Body Problem', 2024, ''],
+  'Get Back': ['The Beatles: Get Back', 2021, ''], 'Lupin': ['Lupin', 2021, ''], 'Peaky Blinders': ['Peaky Blinders', 2013, ''],
+  'The Last Of Us': ['The Last of Us', 2023, ''], 'Weeds': ['Weeds', 2005, ''], 'Ne montre jamais ça à personne': ['Ne montre jamais ça à personne', 2021, ''], 'Star.Wars.Forces.of.Destiny': ['Star Wars : Forces du destin', 2017, 'Star Wars']
 };
 
 /* Corrections : titre détecté (normalisé, éventuellement « |année ») -> [titre, année] ; [null] = ignorer */
@@ -75,7 +79,11 @@ var FIX = {
   '01 part of the weekend never dies': ['Part of the Weekend Never Dies', 2008], '02 nite versions live at fabric': [null], '03 part of the weekend really never dies': [null],
   'dangeureusement votre': ['Dangereusement vôtre', 1985], 'dangereusement votre': ['Dangereusement vôtre', 1985], 'meurt un autre jour': ['Meurs un autre jour', 2002],
   'moon rakjer': ['Moonraker', 1979], 'vivre et laisser mourrir': ['Vivre et laisser mourir', 1973], 'menteur menteur': ['Menteur, menteur', 1997],
-  'jumanji welcome to the jungle': ['Jumanji : Bienvenue dans la jungle', 2017], 'mask 1': [null]
+  'jumanji welcome to the jungle': ['Jumanji : Bienvenue dans la jungle', 2017], 'mask 1': [null],
+  'le monde ne suffit pas': ['Le monde ne suffit pas', 1999], 'skyfall': ['Skyfall', 2012],
+  'le gout des merveilles': ['Le Goût des merveilles', 2015, 'Cinéma français', ''], 'papa ou maman 2': ['Papa ou maman 2', 2016, 'Cinéma français', ''],
+  'shrek': ['Shrek', 2001, 'Animation', 'Shrek'], 'shrek 2': ['Shrek 2', 2004, 'Animation', 'Shrek'], 'shrek 3': ['Shrek le troisième', 2007, 'Animation', 'Shrek'],
+  'shrek 4': ['Shrek 4 : Il était une fin', 2010, 'Animation', 'Shrek'], 'rio 2': ['Rio 2', 2014, 'Animation', '']
 };
 var RULES = [
   [/^StarWars\s*Ep0?1\b/i, 'Star Wars - Épisode I - La Menace fantôme', 1999], [/^StarWars\s*Ep0?2\b/i, "Star Wars, épisode II : L'Attaque des clones", 2002],
@@ -162,7 +170,8 @@ function hmdbBuildLibrary(files, corr) {
     // Séries
     if (ser || top === 'SERIES' || isEp) {
       var name = ser ? (top || base.replace(VIDEO_EXT, '').split(/[ .]S\d{2}E\d{2}/i)[0]) : (top === 'SERIES' ? (sub || base) : (parts.length > 1 ? parts[parts.length - 2] : base.split(/[ .]S\d{2}E\d{2}/i)[0]));
-      var s = SERIES[name] || SERIES[name.replace(/\s+\d+(\.\d+)?$/, '')];
+      var base0 = name.replace(/\s*[-–]?\s*(saison\s*\d+|S\d{1,2}|\d+(\.\d+)?)\s*$/i, '').trim();
+      var s = SERIES[name] || SERIES[base0];
       var st = s ? s[0] : hmdbClean(name)[0], sy = s ? s[1] : hmdbClean(name)[1], ss = s ? s[2] : '';
       var c = corr[hmdbNorm(st)] || FIX[hmdbNorm(st)];
       if (c && c[0] === null) return;
@@ -178,7 +187,7 @@ function hmdbBuildLibrary(files, corr) {
     if (!fx) return;
     t = fx[0]; y = fx[1];
     if (fx[2] && fx[2][2]) cat = fx[2][2];
-    if (fx[2] && fx[2][3]) saga = fx[2][3];
+    if (fx[2] && fx[2].length > 3) saga = fx[2][3];
     if (/^Kill Bill/i.test(t)) saga = 'Tarantino';
     if (top === 'Musique' || /^(BBC|The Blue Planet)/i.test(folderName(parts))) cat = 'Documentaires';
     add(t, y, cat, saga, loc, f.m);
