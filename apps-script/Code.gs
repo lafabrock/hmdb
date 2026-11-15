@@ -8,6 +8,9 @@
  *  - Statuts      : Clé | Titre | Statut | Par | Date
  *  - Demandes     : ID | Titre | Titre original | Année | TMDB | Affiche | Demandé par | Date | Statut | Note
  *  - Utilisateurs : Code | Nom | Rôle (admin ou famille)
+ *  - Vidéothèque  : rempli automatiquement par le script de scan du PC (ne pas modifier à la main)
+ *  - Corrections  : Titre détecté | Titre corrigé | Année | Catégorie | Saga | Ignorer (oui)
+ * Le fichier Parse.gs (même projet) contient la reconnaissance des titres.
  */
 
 var REQ_STATUSES = ['demande', 'encours', 'dispo', 'refuse'];
@@ -56,7 +59,38 @@ function today_() {
   return Utilities.formatDate(new Date(), 'Europe/Paris', 'yyyy-MM-dd');
 }
 
+function sheetOrCreate_(name, header) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet(), sh = ss.getSheetByName(name);
+  if (!sh) { sh = ss.insertSheet(name); sh.appendRow(header); sh.setFrozenRows(1); }
+  return sh;
+}
+
+function corrections_() {
+  var sh = sheetOrCreate_('Corrections', ['Titre détecté', 'Titre corrigé', 'Année', 'Catégorie', 'Saga', 'Ignorer (oui)']);
+  var rows = sh.getDataRange().getValues(), c = {};
+  for (var i = 1; i < rows.length; i++) {
+    if (!rows[i][0]) continue;
+    var ign = String(rows[i][5]).trim().toLowerCase() === 'oui';
+    c[hmdbNorm(rows[i][0])] = ign ? [null] : [String(rows[i][1] || rows[i][0]), +rows[i][2] || 0, String(rows[i][3] || ''), String(rows[i][4] || '')];
+  }
+  return c;
+}
+
+function library_() {
+  var cache = CacheService.getScriptCache(), hit = cache.get('lib');
+  if (hit) return JSON.parse(hit);
+  var sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Vidéothèque');
+  var res = { library: [], updated: PropertiesService.getScriptProperties().getProperty('scanDate') || '' };
+  if (sh) {
+    var rows = sh.getDataRange().getValues();
+    for (var i = 1; i < rows.length; i++) if (rows[i][0]) res.library.push([String(rows[i][0]), +rows[i][1] || 0, String(rows[i][2]), String(rows[i][3]), String(rows[i][4]), +rows[i][5] || 0]);
+  }
+  try { cache.put('lib', JSON.stringify(res), 21600); } catch (err) {}
+  return res;
+}
+
 function doGet(e) {
+  if (e.parameter.action === 'library') { var l = library_(); return json_({ ok: true, library: l.library, updated: l.updated }); }
   var u = user_(e.parameter.code);
   if (!u) return json_({ ok: false, error: 'code' });
   var data = load_();
@@ -85,6 +119,21 @@ function doPost(e) {
       else if (row > 0) sh.getRange(row, 3, 1, 3).setValues([[st, u.nom, today_()]]);
       else sh.appendRow([key, String(body.titre || ''), st, u.nom, today_()]);
       return json_({ ok: true });
+    }
+
+    if (body.action === 'scan') {
+      if (!admin) return json_({ ok: false, error: 'droits' });
+      var lib = hmdbBuildLibrary(body.files || [], corrections_());
+      var vs = sheetOrCreate_('Vidéothèque', ['Titre', 'Année', 'Catégorie', 'Saga', 'Emplacement', 'Ajouté (horodatage)']);
+      vs.getRange(2, 1, Math.max(vs.getMaxRows() - 1, 1), 6).clearContent();
+      if (lib.length) {
+        if (vs.getMaxRows() < lib.length + 1) vs.insertRowsAfter(vs.getMaxRows(), lib.length + 1 - vs.getMaxRows());
+        vs.getRange(2, 1, lib.length, 6).setValues(lib);
+      }
+      var stamp = Utilities.formatDate(new Date(), 'Europe/Paris', 'yyyy-MM-dd HH:mm');
+      PropertiesService.getScriptProperties().setProperty('scanDate', stamp);
+      CacheService.getScriptCache().remove('lib');
+      return json_({ ok: true, titres: lib.length, fichiers: (body.files || []).length, date: stamp });
     }
 
     if (body.action === 'addRequest') {
