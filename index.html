@@ -202,6 +202,7 @@ function saveInfo(){clearTimeout(inT);inT=setTimeout(function(){lsSet('tmdb',INF
 function applyP(el,p){if(p){el.style.backgroundImage='url('+IMG+p+')';el.classList.add('has')}}
 function tmdb(q,y){return fetch('https://api.themoviedb.org/3/search/movie?api_key='+TMDB_KEY+'&include_adult=false&language=fr-FR&query='+enc(q)+(y?'&year='+y:'')).then(function(r){if(!r.ok)throw new Error(r.status);return r.json()}).then(function(j){return j.results||[]})}
 function tmdbTv(q,y){return fetch('https://api.themoviedb.org/3/search/tv?api_key='+TMDB_KEY+'&language=fr-FR&query='+enc(q)+(y?'&first_air_date_year='+y:'')).then(function(r){if(!r.ok)throw new Error(r.status);return r.json()}).then(function(j){return(j.results||[]).map(function(x){return{id:x.id,title:x.name,poster_path:x.poster_path,release_date:x.first_air_date,tv:1}})})}
+function tmdbMulti(q){return fetch('https://api.themoviedb.org/3/search/multi?api_key='+TMDB_KEY+'&include_adult=false&language=fr-FR&query='+enc(q)).then(function(r){if(!r.ok)throw new Error(r.status);return r.json()}).then(function(j){return(j.results||[]).filter(function(x){return x.media_type==='movie'||x.media_type==='tv'}).map(function(x){return x.media_type==='tv'?{id:x.id,title:x.name,original_title:x.original_name,poster_path:x.poster_path,release_date:x.first_air_date,tv:1}:x})})}
 function findInfo(f){
  if(f.cat==='Séries'){var q=f.fr.replace(/\s*\(.*\)\s*$/,'');var tt=[[q,f.y],[q,0]];var nx=function(i){if(i>=tt.length)return Promise.resolve('');return tmdbTv(tt[i][0],tt[i][1]).then(function(r){r=r.filter(function(x){return x.poster_path});return r.length?{p:r[0].poster_path,t:r[0].title,id:r[0].id,tv:1,y:+(r[0].release_date||'').slice(0,4)||0}:nx(i+1)})};return nx(0)}
  var tries=f.y?[[f.or,f.y],[f.fr,f.y],[f.or,f.y-1],[f.or,f.y+1],[f.or,0]]:[[f.fr,0]];
@@ -294,7 +295,7 @@ function tile(f){
  return '<button class="tile'+(SEL===f.id?' sel':'')+(s?' s-'+s:'')+'" data-tile="'+f.id+'"><div class="pz" data-pk="'+f.id+'" style="background:linear-gradient(150deg,'+c+','+c+'99)">'+esc(initials(T))+bd+'</div><div class="tt" data-tt="'+f.id+'">'+esc(T)+'</div><div class="ty">'+sub+'</div></button>';
 }
 function reqView(){
- var H='<div class="reqtop"><button class="rndb big" data-newreq="1">+ Demander un film</button></div>';
+ var H='<div class="reqtop"><button class="rndb big" data-newreq="1">+ Demander un film ou une série</button></div>';
  if(!API)return '<div class="empty">La synchro n\'est pas branchée.</div>';
  if(!ME)return '<div class="empty">Entre ton code famille en haut de la page pour voir et faire des demandes.</div>';
  if(!REQ.length)return H+'<div class="empty">Aucune demande pour l\'instant.</div>';
@@ -305,9 +306,9 @@ function reqView(){
   var rs=RST[r.statut]||RST.demande,mine=r.par===ME.nom;
   var adm=admin?'<div class="st">'+Object.keys(RST).map(function(k){return'<button data-rq="'+esc(r.id)+'" data-rs="'+k+'" class="'+(r.statut===k?'on':'')+'" style="'+(r.statut===k?'background:'+RST[k][1]+';color:#fff':'')+'">'+RST[k][0]+'</button>'}).join('')+'</div>':'';
   var del=(admin||(mine&&r.statut==='demande'))?'<button class="lnk" data-rdel="'+esc(r.id)+'">🗑 Retirer</button>':'';
-  var tm=r.tmdb?'<a class="lnk" href="https://www.themoviedb.org/movie/'+enc(r.tmdb)+'" target="_blank" rel="noopener">Fiche TMDB</a>':'';
+  var isTv=/^tv:/.test(String(r.tmdb||'')),tm=r.tmdb?'<a class="lnk" href="https://www.themoviedb.org/'+(isTv?'tv/':'movie/')+enc(String(r.tmdb).replace(/^tv:/,''))+'" target="_blank" rel="noopener">Fiche TMDB</a>':'';
   return '<div class="row req"><div class="poster"'+(r.affiche?' data-img="'+esc(r.affiche)+'"':'')+' style="background:linear-gradient(150deg,#37474f,#37474f99)">'+esc(initials(r.titre))+'</div>'+
-   '<div class="t"><div class="fr">'+esc(r.titre)+'</div>'+(r.orig&&r.orig!==r.titre?'<div class="or">'+esc(r.orig)+'</div>':'')+
+   '<div class="t"><div class="fr">'+(isTv?'📺 ':'')+esc(r.titre)+'</div>'+(r.orig&&r.orig!==r.titre?'<div class="or">'+esc(r.orig)+'</div>':'')+
    '<div class="meta">'+esc(r.annee)+' · demandé par '+esc(r.par)+' le '+esc(String(r.date).slice(0,10))+'</div>'+(r.note?'<div class="meta">« '+esc(r.note)+' »</div>':'')+
    '<div><span class="rbadge" style="background:'+rs[1]+'">'+rs[0]+'</span></div></div>'+
    '<div class="acts"><div class="links">'+tm+del+'</div>'+adm+'</div></div>';
@@ -357,18 +358,18 @@ function pick(){
 var SR=[],srT=null;
 function newReq(){
  curId=null;
- overlay('<h2>🙋 Demander un film</h2><input id="tsearch" class="sinput" type="search" placeholder="Titre du film…" autocomplete="off"><input id="tnote" class="sinput" placeholder="Un petit mot ? (facultatif)" maxlength="300"><div id="sres" class="sres"><div class="hint">Tape au moins 2 lettres.</div></div><div class="mbtn"><button data-close="1">Fermer</button></div>');
+ overlay('<h2>🙋 Demander un film ou une série</h2><input id="tsearch" class="sinput" type="search" placeholder="Titre du film ou de la série…" autocomplete="off"><input id="tnote" class="sinput" placeholder="Un petit mot ? (facultatif)" maxlength="300"><div id="sres" class="sres"><div class="hint">Tape au moins 2 lettres.</div></div><div class="mbtn"><button data-close="1">Fermer</button></div>');
  setTimeout(function(){var i=$('tsearch');if(i)i.focus()},50);
 }
-function owned(m){var y=(m.release_date||'').slice(0,4);return FILMS.filter(function(f){if(!f.nas)return false;var i=info(f);return(i&&i.id===m.id)||(norm(title(f))===norm(m.title)&&(!f.y||!y||String(f.y)===y))})[0]}
+function owned(m){var y=(m.release_date||'').slice(0,4);return FILMS.filter(function(f){if(!f.nas)return false;var i=info(f);if(!!m.tv!==(f.cat==='Séries'))return false;return(i&&i.id===m.id)||(norm(title(f))===norm(m.title)&&(!f.y||!y||String(f.y)===y))})[0]}
 function searchReq(q){
  var box=$('sres');if(!box)return;
  if(q.length<2){box.innerHTML='<div class="hint">Tape au moins 2 lettres.</div>';return}
  box.innerHTML='<div class="hint">Recherche…</div>';
- tmdb(q,0).then(function(res){
-  SR=res.slice(0,10);if(!$('sres'))return;
+ tmdbMulti(q).then(function(res){
+  SR=res.slice(0,12);if(!$('sres'))return;
   $('sres').innerHTML=SR.length?SR.map(function(m,i){var y=(m.release_date||'').slice(0,4),o=owned(m);
-   return '<div class="sitem"><div class="sp"'+(m.poster_path?' data-img="'+esc(m.poster_path)+'"':'')+'></div><div class="si"><b>'+esc(m.title)+'</b>'+(m.original_title&&m.original_title!==m.title?'<br><i>'+esc(m.original_title)+'</i>':'')+'<br><span class="meta">'+esc(y||'année ?')+'</span></div>'+(o?'<span class="nasb">📀 Déjà à la maison</span>':'<button class="rndb" data-pick="'+i+'">Demander</button>')+'</div>'}).join(''):'<div class="hint">Aucun résultat.</div>';
+   return '<div class="sitem"><div class="sp"'+(m.poster_path?' data-img="'+esc(m.poster_path)+'"':'')+'></div><div class="si"><b>'+esc(m.title)+'</b>'+(m.original_title&&m.original_title!==m.title?'<br><i>'+esc(m.original_title)+'</i>':'')+'<br><span class="meta">'+(m.tv?'📺 Série · ':'🎬 Film · ')+esc(y||'année ?')+'</span></div>'+(o?'<span class="nasb">📀 Déjà à la maison</span>':'<button class="rndb" data-pick="'+i+'">Demander</button>')+'</div>'}).join(''):'<div class="hint">Aucun résultat.</div>';
   hydrate();
  },function(){if($('sres'))$('sres').innerHTML='<div class="hint">Recherche impossible pour le moment.</div>'});
 }
@@ -399,7 +400,7 @@ document.addEventListener('click',function(e){
  if(d.st){ui.st=d.st;saveUi();render();return}
  if(d.copy!=null){copyText(title(FILMS[+d.copy]),b);return}
  if(d.newreq){if(!ME){flash('Entre d\'abord ton code famille');return}newReq();return}
- if(d.pick!=null){var m=SR[+d.pick];if(!m)return;addReq({titre:m.title,orig:m.original_title||'',annee:(m.release_date||'').slice(0,4),tmdb:m.id,affiche:m.poster_path||'',note:($('tnote')||{}).value||''});return}
+ if(d.pick!=null){var m=SR[+d.pick];if(!m)return;addReq({titre:m.title,orig:m.original_title||'',annee:(m.release_date||'').slice(0,4),tmdb:(m.tv?'tv:':'')+m.id,affiche:m.poster_path||'',note:($('tnote')||{}).value||''});return}
  if(d.ask!=null){if(!ME){flash('Entre d\'abord ton code famille');return}var f=FILMS[+d.ask],i=info(f);addReq({titre:f.fr,orig:f.or,annee:f.y,tmdb:i?i.id:'',affiche:i?i.p:'',note:'Liste du livre ('+f.age+' ans)'});return}
  if(d.rq){var r0=REQ.filter(function(x){return x.id===d.rq})[0];if(r0)r0.statut=d.rs;render();send('updateRequest',{id:d.rq,statut:d.rs}).then(sync);return}
  if(d.rdel){REQ=REQ.filter(function(x){return x.id!==d.rdel});render();send('deleteRequest',{id:d.rdel}).then(sync);return}
