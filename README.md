@@ -1,4 +1,4 @@
-# HMDB — les films de la maison
+# HMDB — L'Hirondelle Movie Data Base
 
 Vidéothèque familiale (films présents sur le disque réseau, titres seulement) et liste « 9-12 ans » tirée du livre « Les 200 films à voir avant d'être grand » (Philippe Besnier).
 
