@@ -1,6 +1,8 @@
 package fr.lafabrock.hmdbtv;
 
 import android.app.Activity;
+import android.app.UiModeManager;
+import android.content.res.Configuration;
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.net.Uri;
@@ -19,7 +21,7 @@ import android.widget.Toast;
 
 /** HMDB pour Android TV : affiche le site en plein écran et confie la lecture à VLC. */
 public class MainActivity extends Activity {
-    private static final String SITE = "https://lafabrock.github.io/hmdb/?tv=1";
+    private static final String SITE = "https://lafabrock.github.io/hmdb/";
     private WebView web;
 
     @Override
@@ -49,8 +51,14 @@ public class MainActivity extends Activity {
         web.setFocusableInTouchMode(true);
         setContentView(web);
         if (savedInstanceState != null) web.restoreState(savedInstanceState);
-        else web.loadUrl(SITE + "&v=" + System.currentTimeMillis());  // toujours la dernière version du site
+        else web.loadUrl(SITE + (isTv() ? "?tv=1" : "?app=1") + "&v=" + System.currentTimeMillis());  // toujours la dernière version du site
         web.requestFocus();
+    }
+
+    /** Box Android TV (télécommande) ou téléphone / tablette (tactile) ? */
+    private boolean isTv() {
+        UiModeManager m = (UiModeManager) getSystemService(UI_MODE_SERVICE);
+        return m != null && m.getCurrentModeType() == Configuration.UI_MODE_TYPE_TELEVISION;
     }
 
     private void toast(final String t) {

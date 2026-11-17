@@ -326,7 +326,7 @@ function setSave(t){$('save').textContent=t||''}
 var saveT=null;function flash(t){setSave(t);clearTimeout(saveT);saveT=setTimeout(function(){setSave('')},2500)}
 
 /* ---------- Lecture (box Android TV / téléphone Android) ---------- */
-var TV=!!window.HMDBTV||/[?&]tv=1/.test(location.search),ANDROID=/Android/i.test(navigator.userAgent),CANPLAY=TV||ANDROID;
+var APP=!!window.HMDBTV,TV=/[?&]tv=1/.test(location.search)||(APP&&!/[?&]app=1/.test(location.search)&&!window.HMDBTV.voice),ANDROID=/Android/i.test(navigator.userAgent),CANPLAY=TV||APP||ANDROID;
 var NAS='smb://192.168.1.125/Public/',ROOTS={Z:'Shared Videos',S:'Shared Séries'};
 var PLAYERS={vlc:['VLC','org.videolan.vlc'],nova:['Nova','org.courville.nova']},PLAYER=(function(){try{return JSON.parse(localStorage.getItem('films912-player'))||'vlc'}catch(e){return'vlc'}})();
 var PATHS=null,PLOAD=false;try{PATHS=JSON.parse(localStorage.getItem('films912-paths'))}catch(e){}
