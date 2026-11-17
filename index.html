@@ -214,6 +214,32 @@ body.tv .tvra .tvbtn:focus{outline:3px solid #ffb300!important;outline-offset:2p
 body.tv .rscroll .tile{flex:0 0 132px}
 body.tv .rrow h3,body.tv .rall{font-size:18px;color:var(--ink)}
 .bdg.new{background:#ef6c00}
+.profb{font:inherit;font-weight:600;display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:20px;padding:3px 10px 3px 3px;cursor:pointer}
+.profb span,.pf span{display:inline-flex;align-items:center;justify-content:center;border-radius:50%;color:#fff;font-weight:700}
+.profb span{width:22px;height:22px;font-size:12px}
+.prof{text-align:center;padding:10px}
+.prof h2{font-size:22px;color:var(--ink);margin:6px 0 18px}
+.profs{display:flex;gap:18px;justify-content:center;flex-wrap:wrap}
+.pf{font:inherit;font-weight:600;font-size:16px;background:none;border:0;color:var(--ink);display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;padding:8px;border-radius:14px}
+.pf span{width:76px;height:76px;font-size:32px}
+.pf.on span{box-shadow:0 0 0 3px var(--accd)}
+.profov .mod,.askov .mod{max-width:640px}
+body.tv .pf:focus{outline:4px solid #ffb300!important}
+.ask h2{font-size:20px;color:var(--ink);margin:6px 0 16px;text-align:center}
+.ask .mbtn{display:flex;gap:10px;justify-content:center}
+.tvlang{display:flex;gap:6px;flex-wrap:wrap;margin:-4px 0 10px}
+.tvlang span{font-size:12.5px;border:1px solid rgba(255,255,255,.35);border-radius:6px;padding:2px 7px;color:#e6e5df}
+.tvep.seen{opacity:.6}
+.epv{font-style:normal;color:#66bb6a}
+.eplast{font-style:normal;font-size:12px;background:#ffb300;color:#111;border-radius:5px;padding:1px 6px;margin-left:6px}
+.bdg.encours{background:#ffb300;color:#111}
+.dup{max-width:820px}
+.dupsum{display:flex;gap:12px;flex-wrap:wrap;margin:6px 0 10px}
+.dupsum div{background:var(--card);border-radius:12px;padding:10px 14px;display:flex;flex-direction:column;min-width:150px}
+.dupsum b{font-size:22px}.dupsum span{color:var(--mute);font-size:13px}
+.dup h3{margin:18px 0 2px;font-size:16px}
+.duprow{display:flex;align-items:baseline;gap:8px;padding:6px 2px;border-bottom:1px solid var(--line)}
+.dupz{margin-left:auto;font-variant-numeric:tabular-nums;color:var(--mute);white-space:nowrap}
 </style>
 </head>
 <body>
@@ -254,8 +280,9 @@ function buildFilms(lib){
  lib.forEach(function(r){
   var c=(idx[nk(r[0])]||[]).filter(function(b){return !r[1]||Math.abs(r[1]-b.y)<=1})[0];
   var lk=r[0]+'|'+(+r[1]||0);
-  if(c){c.lk=(c.lk||[]).concat(lk);c.nas=true;c.loc=mergeLoc(c.loc,r[4]);c.cat=c.cat||r[2]||'';c.saga=c.saga||r[3]||'';c.add=Math.max(c.add,r[5]||0);return}
-  films.push({fr:r[0],or:r[0],y:r[1]||0,d:'',age:0,cat:r[2]||'',saga:r[3]||'',nas:true,loc:r[4]||'Z',add:r[5]||0,livre:false,lk:[lk]});
+  var ex={tags:r[6]||'',gz:+r[7]||0,gw:+r[8]||0,nz:+r[9]||0};
+  if(c){c.lk=(c.lk||[]).concat(lk);c.tags=ex.tags;c.gz=ex.gz;c.gw=ex.gw;c.nz=ex.nz;c.nas=true;c.loc=mergeLoc(c.loc,r[4]);c.cat=c.cat||r[2]||'';c.saga=c.saga||r[3]||'';c.add=Math.max(c.add,r[5]||0);return}
+  films.push({fr:r[0],or:r[0],y:r[1]||0,d:'',age:0,cat:r[2]||'',saga:r[3]||'',nas:true,loc:r[4]||'Z',add:r[5]||0,livre:false,lk:[lk],tags:ex.tags,gz:ex.gz,gw:ex.gw,nz:ex.nz});
  });
  films.forEach(function(f,i){f.id=i});FILMS=films;
  SAGAS=[];FILMS.forEach(function(f){if(f.nas&&f.saga&&SAGAS.indexOf(f.saga)<0)SAGAS.push(f.saga)});SAGAS.sort(function(a,b){return a.localeCompare(b,'fr')});
@@ -280,7 +307,18 @@ var STS=[['vu','✓ Vu'],['avoir','À voir'],['non','Pas intéressé']];
 var RST={demande:['🙋 Demandé','#c77700'],encours:['⏳ En cours','#1565c0'],dispo:['✅ Disponible','#2e7d32'],refuse:['🚫 Pas possible','#757575']};
 var COLORS=['#5f7a0c','#1565c0','#6a1b9a','#c62828','#ef6c00','#00838f','#4e342e','#37474f','#ad1457','#2e7d32'];
 var CATS=['Animation','Cinéma français','Classiques','Science-fiction','Horreur','Documentaires','Spectacles','Séries'];
-function st(f){return STATE[pkey(f)]||''}
+var PROFILES=[['famille','Famille','#5f7a0c'],['fabrice','Fabrice','#1565c0'],['hanane','Hanane','#ad1457'],['liam','Liam','#ef6c00'],['elih','Elih','#6a1b9a']];
+var PROF=lsGet('prof','famille');if(!PROFILES.some(function(x){return x[0]===PROF}))PROF='famille';
+function PFX(){return PROF==='famille'?'':'p:'+PROF+'|'}
+function profOf(id){return PROFILES.filter(function(x){return x[0]===id})[0]||PROFILES[0]}
+function skey(f){return PFX()+pkey(f)}
+function st(f){return STATE[skey(f)]||''}
+function setSt(f,v){var k=skey(f);if(v)STATE[k]=v;else delete STATE[k];lsSet('state2',STATE);send('setStatus',{key:k,titre:title(f)+(PROF==='famille'?'':' ('+profOf(PROF)[1]+')'),statut:v})}
+function profPick(){
+ curId=null;TVF=null;
+ overlay('<div class="prof"><h2>Qui regarde ?</h2><div class="profs">'+PROFILES.map(function(x){return'<button class="pf'+(x[0]===PROF?' on':'')+'" data-setprof="'+x[0]+'"><span style="background:'+x[2]+'">'+esc(x[1].charAt(0))+'</span>'+esc(x[1])+'</button>'}).join('')+'</div><p class="meta">« Famille » garde les statuts communs. Chaque prénom a ses propres Vu / À voir.</p></div>');
+ OV.classList.add('profov');var on=OV.querySelector('.pf.on');if(on)on.focus();
+}
 function color(f){return COLORS[((f.y||7)+f.fr.length)%COLORS.length]}
 function initials(t){var w=t.replace(/^(Le|La|Les|L'|The|Un|Une)\s*/i,'').split(/[\s,:'-]+/).filter(function(x){return x&&!/^(et|de|du|des|la|le|les|l|d|a|à|of|the|and)$/i.test(x)});return (w[0]||'?')[0].toUpperCase()+((w[1]||'')[0]||'').toUpperCase()}
 function reqFor(f){for(var i=0;i<REQ.length;i++){var r=REQ[i];if(r.titre===f.fr&&String(r.annee)===String(f.y))return r}return null}
@@ -304,19 +342,40 @@ function playArea(f){
  if(!CODE)return'<div class="play"><span class="meta">Entre ton code famille pour lire les films.</span></div>';
  if(!PATHS){loadPaths();return'<div class="play"><span class="meta">Chargement…</span></div>'}
  var ps=pathsOf(f);if(!ps.length)return'<div class="play"><span class="meta">Fichier introuvable (prochain scan ce soir).</span></div>';
- if(ps.length===1)return'<div class="play"><div class="pbs">'+Object.keys(PLAYERS).sort(function(a,b){return(b===PLAYER)-(a===PLAYER)}).map(function(k){return'<button class="playb'+(k==='nova'?' nova':'')+'" data-play="'+esc(smb(ps[0]))+'" data-pl="'+k+'" data-ptitle="'+esc(title(f))+'">▶ '+PLAYERS[k][0]+'</button>'}).join('')+'</div></div>';
+ if(ps.length===1)return'<div class="play"><div class="pbs">'+Object.keys(PLAYERS).sort(function(a,b){return(b===PLAYER)-(a===PLAYER)}).map(function(k){return'<button class="playb'+(k==='nova'?' nova':'')+'" data-play="'+esc(smb(ps[0]))+'" data-sub="'+esc(subUrl(ps[0]))+'" data-fid="'+f.id+'" data-pl="'+k+'" data-ptitle="'+esc(title(f))+'">▶ '+PLAYERS[k][0]+'</button>'}).join('')+'</div></div>';
  var tog='<div class="st plsel">'+Object.keys(PLAYERS).map(function(k){return'<button data-setpl="'+k+'" class="'+(PLAYER===k?'on':'')+'">Lecteur : '+PLAYERS[k][0]+'</button>'}).join('')+'</div>';
  var groups={},order=[];ps.forEach(function(x){var d=x[1].split('/').slice(0,-1).join(' / ')||'—';if(!groups[d]){groups[d]=[];order.push(d)}groups[d].push(x)});
- return'<div class="play">'+tog+order.map(function(d,i){return'<details'+(i===0?' open':'')+'><summary tabindex="0">'+esc(d.split(' / ').pop())+' ('+groups[d].length+')</summary><div class="eps">'+groups[d].map(function(x){return'<button class="playb ep" data-play="'+esc(smb(x))+'" data-ptitle="'+esc(title(f)+' '+epName(x[1]))+'">▶ '+esc(epName(x[1]))+'</button>'}).join('')+'</div></details>'}).join('')+'</div>';
+ return'<div class="play">'+tog+order.map(function(d,i){return'<details'+(i===0?' open':'')+'><summary tabindex="0">'+esc(d.split(' / ').pop())+' ('+groups[d].length+')</summary><div class="eps">'+groups[d].map(function(x){return'<button class="playb ep" data-play="'+esc(smb(x))+'" data-sub="'+esc(subUrl(x))+'" data-fid="'+f.id+'" data-ptitle="'+esc(title(f)+' '+epName(x[1]))+'">▶ '+esc(epName(x[1]))+'</button>'}).join('')+'</div></details>'}).join('')+'</div>';
 }
-function play(url,t,pl){
+function subUrl(x){return x&&x[2]?smb([x[0],x[2]]):''}
+function play(url,t,pl,sub,fid){
  pl=PLAYERS[pl]?pl:PLAYER;var pk=PLAYERS[pl][1];
+ if(fid!=null&&FILMS[+fid])started(FILMS[+fid],url,t);
  if(pl!==PLAYER){PLAYER=pl;try{localStorage.setItem('films912-player',JSON.stringify(pl))}catch(e){}}
+ if(window.HMDBTV&&window.HMDBTV.playWithSubs){window.HMDBTV.playWithSubs(url,t||'',pk,sub||'');return}
  if(window.HMDBTV&&window.HMDBTV.playWith){window.HMDBTV.playWith(url,t||'',pk);return}
  if(window.HMDBTV&&window.HMDBTV.play){if(pl!=='vlc')flash('Mets à jour l\'appli HMDB pour utiliser Nova');window.HMDBTV.play(url,t||'');return}
  location.href='intent://'+url.replace(/^smb:\/\//,'')+'#Intent;scheme=smb;type=video/*;package='+pk+';S.title='+enc(t||'')+';end';
 }
 
+
+/* ---------- En cours / reprise ---------- */
+var EPW=lsGet('epw',{});
+function epSeen(f,url){var k=PROF+'|'+pkey(f);return !!(EPW[k]&&EPW[k][url])}
+function started(f,url,t){
+ if(st(f)!=='vu')setSt(f,'encours');
+ if(isSeries(f)){var k=PROF+'|'+pkey(f);EPW[k]=EPW[k]||{};EPW[k][url]=Date.now();EPW[k]._last=url;lsSet('epw',EPW)}
+ lsSet('lastplay',{id:f.id,k:pkey(f),t:t,at:Date.now(),ser:isSeries(f)});
+}
+window.hmdbResume=function(){
+ var lp=lsGet('lastplay',null);if(!lp)return;lsSet('lastplay',null);
+ if(lp.ser||Date.now()-lp.at<3*60000)return;
+ var f=FILMS.filter(function(x){return pkey(x)===lp.k})[0];if(!f||st(f)==='vu')return;
+ render();curId=null;TVF=null;
+ overlay('<div class="ask"><h2>Tu as fini « '+esc(title(f))+' » ?</h2><div class="mbtn"><button class="tvbtn play" data-done="'+f.id+'" data-v="vu">✓ Oui, je l\'ai vu</button><button class="tvbtn" data-done="'+f.id+'" data-v="encours">Pas encore</button></div></div>');
+ OV.classList.add('askov');var b0=OV.querySelector('.tvbtn');if(b0)b0.focus();
+};
+document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible')setTimeout(function(){window.hmdbResume()},400)});
 
 /* ---------- Fiche plein écran pour la TV ---------- */
 var OMDB_KEY='b95c37b1';
@@ -352,15 +411,16 @@ function seasonsOf(ps){
  order.forEach(function(k){S[k].eps.sort(function(a,b){return a.e&&b.e?a.e.e-b.e.e:(a.x[1]<b.x[1]?-1:1)})});
  return order.map(function(k){return S[k]});
 }
+function langBadges(f){var t=(f.tags||'').split(' ').filter(Boolean);if(!t.length)return'';var L={MULTI:'MULTI (VF + VO)',VF:'🇫🇷 VF',VOSTFR:'VOSTFR',ST:'💬 Sous-titres'};return'<div class="tvlang">'+t.map(function(x){return'<span>'+(L[x]||x)+'</span>'}).join('')+'</div>'}
 function tvRow(f){
  var s=st(f),c=color(f),T=title(f),Y=year(f),d=DET[pkey(f)],r=reqFor(f);
  var what=[f.cat,f.saga].filter(Boolean).join(' · ');
- var bad=(s?'<span class="bdg2 '+s+'">'+({vu:'✓ Vu',avoir:'À voir',non:'✗'})[s]+'</span>':'')+(f.livre&&ui.tab!=='livre'?'<span class="bdg2">📚 '+f.age+'</span>':'')+(r?'<span class="bdg2">'+RST[r.statut][0]+'</span>':'');
+ var bad=(s?'<span class="bdg2 '+s+'">'+({vu:'✓ Vu',avoir:'À voir',non:'✗',encours:'▶ En cours'})[s]+'</span>':'')+(f.livre&&ui.tab!=='livre'?'<span class="bdg2">📚 '+f.age+'</span>':'')+(r?'<span class="bdg2">'+RST[r.statut][0]+'</span>':'')+(/VOSTFR|ST/.test(f.tags||'')?'<span class="bdg2">💬</span>':'');
  var note=d?(d.im?'<span class="nt imdb">IMDb <b>'+esc(d.im)+'</b></span>':(d.vote?'<span class="nt tm">TMDB <b>'+d.vote+'</b></span>':'')):'';
  var ps=CANPLAY&&f.nas&&f.loc.indexOf('Z')>=0&&CODE?pathsOf(f):[],act='';
  if(f.loc==='W')act='<span class="bdg2 w">💾 Whale</span>';
  else if(ps.length&&(isSeries(f)||ps.length>1))act='<button class="tvbtn sm" data-tile="'+f.id+'" data-fk="eps">▶ Épisodes</button>';
- else if(ps.length)act=Object.keys(PLAYERS).sort(function(x,y){return(y===PLAYER)-(x===PLAYER)}).map(function(k){return'<button class="tvbtn sm play'+(k==='nova'?' nova':'')+'" data-play="'+esc(smb(ps[0]))+'" data-pl="'+k+'" data-ptitle="'+esc(T)+'">▶ '+PLAYERS[k][0]+'</button>'}).join('');
+ else if(ps.length)act=Object.keys(PLAYERS).sort(function(x,y){return(y===PLAYER)-(x===PLAYER)}).map(function(k){return'<button class="tvbtn sm play'+(k==='nova'?' nova':'')+'" data-play="'+esc(smb(ps[0]))+'" data-sub="'+esc(subUrl(ps[0]))+'" data-fid="'+f.id+'" data-pl="'+k+'" data-ptitle="'+esc(T)+'">▶ '+PLAYERS[k][0]+'</button>'}).join('');
  else if(ui.tab==='livre'&&!f.nas)act='';
  return '<div class="tvrow'+(s?' s-'+s:'')+'"><button class="tvrmain" data-tile="'+f.id+'"><span class="tvrp" data-pk="'+f.id+'" style="background:linear-gradient(150deg,'+c+','+c+'99)"></span><span class="tvrt"><b>'+esc(T)+'</b><span class="tvry">'+esc(Y||'')+'</span>'+(what?'<span class="tvrm">'+esc(what)+'</span>':'')+'</span><span class="tvrn">'+note+'</span><span class="tvrb">'+bad+'</span></button><span class="tvra">'+act+'</span></div>';
 }
@@ -377,7 +437,7 @@ function tvRender(first){
  var btns='';
  if(!CODE&&f.nas&&f.loc.indexOf('Z')>=0)btns+='<span class="meta">Entre ton code famille pour lire.</span>';
  else if(f.loc==='W')btns+='<span class="meta">💾 Sur Whale : pas lisible sur la TV.</span>';
- else if(!ser&&ps.length)btns+=Object.keys(PLAYERS).sort(function(x,y){return(y===PLAYER)-(x===PLAYER)}).map(function(k){return'<button class="tvbtn play'+(k==='nova'?' nova':'')+'" data-fk="pl'+k+'" data-play="'+esc(smb(ps[0]))+'" data-pl="'+k+'" data-ptitle="'+esc(T)+'">▶ '+PLAYERS[k][0]+'</button>'}).join('');
+ else if(!ser&&ps.length)btns+=Object.keys(PLAYERS).sort(function(x,y){return(y===PLAYER)-(x===PLAYER)}).map(function(k){return'<button class="tvbtn play'+(k==='nova'?' nova':'')+'" data-fk="pl'+k+'" data-play="'+esc(smb(ps[0]))+'" data-sub="'+esc(subUrl(ps[0]))+'" data-fid="'+f.id+'" data-pl="'+k+'" data-ptitle="'+esc(T)+'">▶ '+PLAYERS[k][0]+'</button>'}).join('');
  else if(ser&&ps.length)btns+='<span class="tvlab">Lire avec</span>'+Object.keys(PLAYERS).map(function(k){return'<button class="tvbtn tog'+(PLAYER===k?' on':'')+'" data-fk="set'+k+'" data-setpl="'+k+'">'+(PLAYER===k?'✓ ':'')+PLAYERS[k][0]+'</button>'}).join('');
  if(d&&d.yt)btns+='<button class="tvbtn" data-fk="yt" data-yt="'+esc(d.yt)+'">🎞 Bande-annonce</button>';
  if(TVRND)btns+='<button class="tvbtn" data-fk="rnd" data-rnd="1">🎲 Un autre</button>';
@@ -389,16 +449,17 @@ function tvRender(first){
   if(d&&d.tv&&cur.n&&!sm)loadSeason(d.id,cur.n).then(function(){if(OV&&TVF===f.id)tvRender()});
   eps='<div class="tvseas">'+(SS.length>1?SS.map(function(z){return'<button class="tvbtn sea'+(z.k===TVS?' on':'')+'" data-fk="sea'+esc(z.k)+'" data-sea="'+esc(z.k)+'">'+esc(z.label)+'</button>'}).join(''):'<b>'+esc(cur.label)+'</b>')+'</div><div class="tveps">'+
    cur.eps.map(function(ep,n){var m=sm&&ep.e?sm[ep.e.e]:null,lab=ep.e?'Épisode '+ep.e.e:epName(ep.x[1]);
-    return'<button class="tvep" data-fk="ep'+n+'" data-play="'+esc(smb(ep.x))+'" data-pl="'+PLAYER+'" data-ptitle="'+esc(T+' '+epName(ep.x[1]))+'"><div class="tvei"'+(m&&m.img?' style="background-image:url(https://image.tmdb.org/t/p/w300'+esc(m.img)+')"':'')+'>▶</div><div class="tvet"><b>'+esc(lab)+(m&&m.t?' · '+esc(m.t):'')+'</b>'+(m&&m.ov?'<small>'+esc(m.ov)+'</small>':'')+'</div></button>'}).join('')+'</div>';
+    var seen=epSeen(f,smb(ep.x)),last=EPW[PROF+'|'+pkey(f)]&&EPW[PROF+'|'+pkey(f)]._last===smb(ep.x);
+    return'<button class="tvep'+(seen?' seen':'')+(last?' last':'')+'" data-fk="ep'+n+'" data-play="'+esc(smb(ep.x))+'" data-sub="'+esc(subUrl(ep.x))+'" data-fid="'+f.id+'" data-pl="'+PLAYER+'" data-ptitle="'+esc(T+' '+epName(ep.x[1]))+'"><div class="tvei"'+(m&&m.img?' style="background-image:url(https://image.tmdb.org/t/p/w300'+esc(m.img)+')"':'')+'>▶</div><div class="tvet"><b>'+(seen?'<i class="epv">✓</i> ':'')+esc(lab)+(m&&m.t?' · '+esc(m.t):'')+(last?' <i class="eplast">dernier lancé</i>':'')+'</b>'+(m&&m.ov?'<small>'+esc(m.ov)+'</small>':'')+'</div></button>'}).join('')+'</div>';
  }
  var bg=d&&d.bd?'background-image:linear-gradient(90deg,rgba(10,10,10,.97) 35%,rgba(10,10,10,.6) 70%,rgba(10,10,10,.35)),url(https://image.tmdb.org/t/p/w1280'+esc(d.bd)+')':'';
  var poster=(d&&d.p)||(i&&i.p)||'';
  overlay('<div class="tvd" style="'+bg+'"><div class="tvin"><div class="tvp" style="background:linear-gradient(150deg,'+c+','+c+'99)'+(poster?';background-image:url('+IMG+esc(poster)+')':'')+'">'+(poster?'':esc(initials(T)))+'</div><div class="tvi">'+
-  (TVRND?'<div class="tvk">🎲 Et si on regardait…</div>':'')+'<h1>'+esc(T)+'</h1>'+(T!==f.fr&&!f.livre?'<div class="tvo">'+esc(f.fr)+'</div>':'')+'<div class="tvm">'+esc(meta)+(f.livre?' · 📚 Liste '+f.age+' ans':'')+'</div>'+(notes?'<div class="tvn">'+notes+'</div>':'')+who+
+  (TVRND?'<div class="tvk">🎲 Et si on regardait…</div>':'')+'<h1>'+esc(T)+'</h1>'+(T!==f.fr&&!f.livre?'<div class="tvo">'+esc(f.fr)+'</div>':'')+'<div class="tvm">'+esc(meta)+(f.livre?' · 📚 Liste '+f.age+' ans':'')+'</div>'+langBadges(f)+(notes?'<div class="tvn">'+notes+'</div>':'')+who+
   (d&&d.ov?'<p class="tvov">'+esc(d.ov)+'</p>':(d?'':'<p class="tvov meta">Chargement des informations…</p>'))+'<div class="tvb">'+btns+'</div></div></div>'+eps+'</div>');
  OV.classList.add('tvov');
  var tgt=keep&&OV.querySelector('[data-fk="'+keep+'"]');
- if(!tgt&&(first||!keep))tgt=OV.querySelector('.tvbtn.play,.tvep,.tvbtn');
+ if(!tgt&&(first||!keep)){var lst=OV.querySelector('.tvep.last');var nx=lst?lst.nextElementSibling:null;tgt=OV.querySelector('.tvbtn.play')||(nx&&!nx.classList.contains('seen')?nx:null)||OV.querySelector('.tvep:not(.seen)')||OV.querySelector('.tvep,.tvbtn')}
  if(tgt)tgt.focus();
 }
 
@@ -461,14 +522,16 @@ function send(action,data){
 function scope(){return FILMS.filter(function(f){return ui.tab==='livre'?f.livre:f.nas})}
 function who(){
  var w=$('who');if(!API){w.innerHTML='';return}
- if(ME&&CODE)w.innerHTML='<span>👤 '+esc(ME.nom)+(ME.role==='admin'?' (admin)':'')+'</span> <button class="linkb" data-logout="1">changer</button>';
+ var pr=profOf(PROF),pb='<button class="profb" data-prof="1"><span style="background:'+pr[2]+'">'+esc(pr[1].charAt(0))+'</span>'+esc(pr[1])+' ▾</button>';
+ if(ME&&CODE)w.innerHTML=pb+' <span class="meta">· code '+esc(ME.nom)+(ME.role==='admin'?' (admin)':'')+'</span> <button class="linkb" data-logout="1">changer</button>';
  else w.innerHTML='<form id="login" class="login"><input id="codein" autocomplete="off" placeholder="Ton code famille"><button class="rndb" type="submit">Entrer</button></form><div class="hint">Sans code, tes statuts restent seulement sur cet appareil.</div>';
 }
 function chip(on,attr,val,label){return'<button class="chip'+(on?' on':'')+'" '+attr+'="'+esc(val)+'">'+label+'</button>'}
 function chips(){
  var open=REQ.filter(function(r){return r.statut==='demande'||r.statut==='encours'}).length;
  var nNas=FILMS.filter(function(f){return f.nas}).length,nLiv=FILMS.filter(function(f){return f.livre}).length;
- $('tabs').innerHTML=[['lib','📀 Vidéothèque',nNas],['livre','📚 9-12 ans',nLiv],['req','🙋 Demandes',open]].map(function(t){return'<button class="tab'+(ui.tab===t[0]?' on':'')+'" data-tab="'+t[0]+'">'+t[1]+(t[2]?' <span>'+t[2]+'</span>':'')+'</button>'}).join('');
+ var TABS=[['lib','📀 Vidéothèque',nNas],['livre','📚 9-12 ans',nLiv],['req','🙋 Demandes',open]];if(ME&&ME.role==='admin')TABS.push(['dup','🧹 Doublons',0]);
+ $('tabs').innerHTML=TABS.map(function(t){return'<button class="tab'+(ui.tab===t[0]?' on':'')+'" data-tab="'+t[0]+'">'+t[1]+(t[2]?' <span>'+t[2]+'</span>':'')+'</button>'}).join('');
  var sc=scope();
  $('ages').innerHTML=ui.tab==='livre'?[0,9,10,11,12].map(function(x){return chip(ui.age===x,'data-age',x,x?x+' ans':'Tous âges')}).join(''):'';
  if(ui.tab==='lib'){
@@ -479,9 +542,9 @@ function chips(){
  }else{$('cats').innerHTML='';$('sagas').innerHTML=''}
  var yc={};sc.forEach(function(f){var b=ybin(f);yc[b]=(yc[b]||0)+1});
  var yk=[];for(var yy=NOWY;yy>=2020;yy--)yk.push('y'+yy);[2010,2000,1990,1980,1970,1960].forEach(function(d){yk.push('d'+d)});yk.push('old','unk');
- $('years').innerHTML=ui.tab==='req'?'':chip(!ui.yr,'data-yr','','Toutes années')+yk.filter(function(k){return yc[k]||ui.yr===k}).map(function(k){return chip(ui.yr===k,'data-yr',k,ylabel(k)+' ('+(yc[k]||0)+')')}).join('');
- var c={all:sc.length,vu:0,avoir:0,non:0,none:0,nas:0};sc.forEach(function(f){c[st(f)||'none']++;if(f.nas)c.nas++});
- var list=[['all','Tous'],['avoir','À voir'],['vu','Vus'],['none','Sans statut'],['non','Pas intéressé']];
+ $('years').innerHTML=(ui.tab==='req'||ui.tab==='dup')?'':chip(!ui.yr,'data-yr','','Toutes années')+yk.filter(function(k){return yc[k]||ui.yr===k}).map(function(k){return chip(ui.yr===k,'data-yr',k,ylabel(k)+' ('+(yc[k]||0)+')')}).join('');
+ var c={all:sc.length,vu:0,avoir:0,non:0,none:0,nas:0,encours:0};sc.forEach(function(f){c[st(f)||'none']++;if(f.nas)c.nas++});
+ var list=[['all','Tous'],['encours','▶ En cours'],['avoir','À voir'],['vu','Vus'],['none','Sans statut'],['non','Pas intéressé']];if(!c.encours)list.splice(1,1);
  if(ui.tab==='livre')list.splice(1,0,['nas','📀 À la maison']);
  $('sts').innerHTML=list.map(function(x){return chip(ui.st===x[0],'data-st',x[0],x[1]+' ('+c[x[0]]+')')}).join('');
  $('sorts').innerHTML=ui.tab==='lib'?'<label>Tri <select id="sortsel"><option value="new"'+(ui.sort==='new'?' selected':'')+'>Ajouts récents</option><option value="az"'+(ui.sort==='az'?' selected':'')+'>A → Z</option><option value="year"'+(ui.sort==='year'?' selected':'')+'>Année</option></select></label>':'';
@@ -503,17 +566,41 @@ function card(f){
   playArea(f)+'<div class="acts"><div class="links"><a class="lnk" href="'+imdb+'" target="_blank" rel="noopener">IMDb</a><a class="lnk" href="'+sc+'" target="_blank" rel="noopener">SensCritique</a><a class="lnk" href="'+rt+'" target="_blank" rel="noopener">Rotten 🍅</a><button class="lnk cp" data-copy="'+f.id+'">📋 Copier</button>'+ask+'</div>'+
   '<div class="st">'+STS.map(function(x){return'<button data-id="'+f.id+'" data-s="'+x[0]+'" class="'+(s===x[0]?'on':'')+'">'+x[1]+'</button>'}).join('')+'</div></div></div>';
 }
+function shelf(t,list,min){if(list.length<(min||1))return'';return'<div class="rrow"><h3>'+t+'</h3><div class="rscroll">'+list.map(tile).join('')+'</div></div>'}
 function recentRow(){
  if(ui.tab!=='lib'||ui.q||ui.cat||ui.yr||ui.st!=='all')return'';
- var r=FILMS.filter(function(f){return f.nas&&f.add}).sort(function(a,b){return b.add-a.add}).slice(0,16);
- if(r.length<4)return'';
- return'<div class="rrow"><h3>🆕 Ajouts récents</h3><div class="rscroll">'+r.map(tile).join('')+'</div></div><h3 class="rall">Toute la vidéothèque</h3>';
+ var lib=FILMS.filter(function(f){return f.nas}),free=function(f){var x=st(f);return x!=='vu'&&x!=='non'};
+ var H='';
+ H+=shelf('▶ En cours'+(PROF!=='famille'?' · '+esc(profOf(PROF)[1]):''),lib.filter(function(f){return st(f)==='encours'}).sort(function(a,b){return b.add-a.add}));
+ H+=shelf('🆕 Ajouts récents',lib.filter(function(f){return f.add}).sort(function(a,b){return b.add-a.add}).slice(0,16),4);
+ H+=shelf('📌 À voir'+(PROF!=='famille'?' · '+esc(profOf(PROF)[1]):''),lib.filter(function(f){return st(f)==='avoir'}));
+ H+=shelf('📚 Liste 9-12 ans pas encore vus',lib.filter(function(f){return f.livre&&free(f)&&st(f)!=='encours'}).sort(function(a,b){return a.age-b.age||a.y-b.y}));
+ var sg={};lib.forEach(function(f){if(f.saga&&f.cat!=='Séries'){(sg[f.saga]=sg[f.saga]||[]).push(f)}});
+ var nexts=[];Object.keys(sg).forEach(function(k){var L=sg[k].sort(function(a,b){return(year(a)||0)-(year(b)||0)});if(!L.some(function(f){return st(f)==='vu'}))return;var n=L.filter(function(f){return free(f)&&st(f)!=='encours'})[0];if(n)nexts.push(n)});
+ H+=shelf('🎬 Sagas à terminer',nexts);
+ var good=lib.filter(function(f){var d=DET[pkey(f)];if(!d||!free(f)||st(f)==='encours')return false;var n=+d.im||d.vote||0;return n>=7.5}).sort(function(a,b){var da=DET[pkey(a)],db=DET[pkey(b)];return(+db.im||db.vote)-(+da.im||da.vote)}).slice(0,20);
+ H+=shelf('⭐ Bien notés, pas encore vus',good,4);
+ return H?H+'<h3 class="rall">Toute la vidéothèque</h3>':'';
 }
 function tile(f){
  var s=st(f),c=color(f),T=title(f),Y=year(f);
- var bd=s?'<span class="bdg '+s+'">'+({vu:'✓ Vu',avoir:'À voir',non:'✗'})[s]+'</span>':(f.nas&&f.add&&Date.now()/1000-f.add<7*86400?'<span class="bdg new">Nouveau</span>':'');
+ var bd=s?'<span class="bdg '+s+'">'+({vu:'✓ Vu',avoir:'À voir',non:'✗',encours:'▶ En cours'})[s]+'</span>':(f.nas&&f.add&&Date.now()/1000-f.add<7*86400?'<span class="bdg new">Nouveau</span>':'');
  var sub=[Y,f.age?f.age+' ans':'',ui.tab==='livre'&&f.nas?(f.loc==='W'?'💾':'📀'):'',ui.tab==='lib'&&f.loc==='W'?'💾':'',ui.tab==='lib'&&f.livre?'📚':''].filter(Boolean).join(' · ');
  return '<button class="tile'+(SEL===f.id?' sel':'')+(s?' s-'+s:'')+'" data-tile="'+f.id+'"><div class="pz" data-pk="'+f.id+'" style="background:linear-gradient(150deg,'+c+','+c+'99)">'+esc(initials(T))+bd+'</div><div class="tt" data-tt="'+f.id+'">'+esc(T)+'</div><div class="ty">'+sub+'</div></button>';
+}
+function dupView(){
+ var lib=FILMS.filter(function(f){return f.nas}),g=function(x){return x>=100?Math.round(x)+' Go':(Math.round(x*10)/10)+' Go'};
+ var tz=0,tw=0;lib.forEach(function(f){tz+=f.gz||0;tw+=f.gw||0});
+ if(!tz&&!tw)return'<div class="empty">Les tailles arriveront avec le prochain scan.</div>';
+ var both=lib.filter(function(f){return f.loc==='ZW'}).sort(function(a,b){return(b.gz||0)-(a.gz||0)});
+ var multi=lib.filter(function(f){return(f.nz||0)>1}).sort(function(a,b){return(b.gz||0)-(a.gz||0)});
+ var sb=0;both.forEach(function(f){sb+=Math.min(f.gz||0,f.gw||0)});
+ var big=lib.filter(function(f){return f.loc.indexOf('Z')>=0}).sort(function(a,b){return(b.gz||0)-(a.gz||0)}).slice(0,15);
+ var row=function(f,extra){return'<div class="duprow"><b>'+esc(title(f))+'</b> <span class="meta">'+esc(year(f)||'')+'</span><span class="dupz">'+extra+'</span></div>'};
+ return'<div class="dup"><div class="dupsum"><div><b>'+g(tz)+'</b><span>sur le WD</span></div><div><b>'+g(tw)+'</b><span>sur Whale</span></div><div><b>'+both.length+'</b><span>titres en double (≈ '+g(sb)+' à gagner)</span></div></div>'+
+  '<h3>Sur les deux disques ('+both.length+')</h3><p class="meta">Même titre sur le WD et sur Whale. Tailles : WD / Whale.</p>'+both.map(function(f){return row(f,g(f.gz||0)+' / '+g(f.gw||0))}).join('')+
+  (multi.length?'<h3>Plusieurs fichiers sur le WD ('+multi.length+')</h3><p class="meta">Plusieurs versions du même film sur le WD.</p>'+multi.map(function(f){return row(f,f.nz+' fichiers · '+g(f.gz||0))}).join(''):'')+
+  '<h3>Les plus gros fichiers du WD</h3>'+big.map(function(f){return row(f,g(f.gz||0))}).join('')+'</div>';
 }
 function reqView(){
  var H='<div class="reqtop"><button class="rndb big" data-newreq="1">+ Demander un film ou une série</button></div>';
@@ -537,9 +624,11 @@ function reqView(){
 }
 function render(){
  who();chips();
- var R=ui.tab==='req';
+ if(ui.tab==='dup'&&!(ME&&ME.role==='admin'))ui.tab='lib';
+ var R=ui.tab==='req'||ui.tab==='dup';
  document.body.classList.toggle('reqmode',R);
  var main=document.querySelector('main');main.classList.toggle('g',!R&&ui.view==='gal');main.classList.toggle('r',R);
+ if(ui.tab==='dup'){$('count').textContent='';$('list').innerHTML=dupView();hydrate();return}
  if(R){$('count').textContent=REQ.length+' demande'+(REQ.length>1?'s':'');$('list').innerHTML=reqView();hydrate();return}
  var q=norm(ui.q||'');
  var rows=scope().filter(function(f){
@@ -611,7 +700,7 @@ function saveUi(){lsSet('ui2',ui)}
 document.addEventListener('click',function(e){
  var b=e.target.closest('button');if(!b||(b.form&&b.type==='submit'))return;
  var d=b.dataset;
- if(d.play){play(d.play,d.ptitle,d.pl);return}
+ if(d.play){play(d.play,d.ptitle,d.pl,d.sub,d.fid);return}
  if(d.yt){location.href='https://www.youtube.com/watch?v='+d.yt;return}
  if(d.sea){TVS=d.sea;tvRender();var e0=OV&&OV.querySelector('.tvep');if(e0){e0.focus();try{e0.scrollIntoView({block:'nearest'})}catch(x){}}return}
  if(d.setpl){PLAYER=d.setpl;try{localStorage.setItem('films912-player',JSON.stringify(PLAYER))}catch(e){}if(OV&&TVF!=null)tvRender();else render();return}
@@ -632,7 +721,11 @@ document.addEventListener('click',function(e){
  if(d.ask!=null){if(!ME){flash('Entre d\'abord ton code famille');return}var f=FILMS[+d.ask],i=info(f);addReq({titre:f.fr,orig:f.or,annee:f.y,tmdb:i?i.id:'',affiche:i?i.p:'',note:'Liste du livre ('+f.age+' ans)'});return}
  if(d.rq){var r0=REQ.filter(function(x){return x.id===d.rq})[0];if(r0)r0.statut=d.rs;render();send('updateRequest',{id:d.rq,statut:d.rs}).then(sync);return}
  if(d.rdel){REQ=REQ.filter(function(x){return x.id!==d.rdel});render();send('deleteRequest',{id:d.rdel}).then(sync);return}
- if(d.s){var f2=FILMS[+d.id],k=pkey(f2),v=STATE[k]===d.s?'':d.s;if(v)STATE[k]=v;else delete STATE[k];lsSet('state2',STATE);render();if(OV&&curId!=null)showCard(curId);else if(OV&&TVF!=null)tvRender();send('setStatus',{key:k,titre:title(f2),statut:v});return}
+ if(d.s){var f2=FILMS[+d.id],v=st(f2)===d.s?'':d.s;setSt(f2,v);render();if(OV&&curId!=null)showCard(curId);else if(OV&&TVF!=null)tvRender();return}
+ if(d.setprof){PROF=d.setprof;lsSet('prof',PROF);closeOV();render();var t0=document.querySelector('main .tile,main .tvrmain');if(t0)t0.focus();return}
+ if(d.prof){profPick();return}
+ if(d.voice){if(window.HMDBTV&&window.HMDBTV.voice)window.HMDBTV.voice();else flash('Mets à jour l\'appli pour la recherche vocale');return}
+ if(d.done!=null){var fd=FILMS[+d.done];if(fd)setSt(fd,d.v||'encours');closeOV();render();return}
 });
 document.addEventListener('change',function(e){if(e.target.id==='sortsel'){ui.sort=e.target.value;saveUi();render()}});
 document.addEventListener('submit',function(e){
@@ -686,6 +779,8 @@ if(TV){
   if(dir==='ArrowUp'){var G2=groups();if(G2.length){window.scrollTo(0,0);return go(enter(G2[G2.length-1],null),true)}}
   return true;
  };
+ window.hmdbVoice=function(t){t=String(t||'').trim();if(!t)return;ui.q=t;$('q').value=t;ui.cat='';ui.yr='';ui.st='all';saveUi();render();var t0=document.querySelector('main .tile,main .tvrmain');if(t0)t0.focus();flash('🎤 « '+t+' »')};
+ var vb=$('vw');if(vb&&!$('voice')){var b2=document.createElement('button');b2.id='voice';b2.className='rndb';b2.setAttribute('data-voice','1');b2.textContent='🎤 Recherche vocale';vb.parentNode.insertBefore(b2,vb)}
  document.addEventListener('keydown',function(e){
   var a=document.activeElement,txt=a&&(a.tagName==='INPUT'||a.tagName==='TEXTAREA');
   if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].indexOf(e.key)<0)return;
@@ -717,7 +812,7 @@ libDate(LIBC&&LIBC.updated);
 render();
 sync();
 loadPaths(true);
-if(TV)setTimeout(function(){var t=document.querySelector('.tile');if(t)t.focus()},400);
+if(TV)setTimeout(function(){var t=document.querySelector('.tile');if(t)t.focus();profPick()},400);
 if(API)fetch(API+'?action=library').then(function(r){return r.json()}).then(function(j){
  if(!j.ok||!j.library||!j.library.length)return;
  var prev=LIBC&&JSON.stringify(LIBC.rows);LIBC={rows:j.library,updated:j.updated};lsSet('lib2',LIBC);libDate(j.updated);

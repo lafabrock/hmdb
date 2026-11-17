@@ -14,7 +14,7 @@ $Roots = @(
 )
 
 $Log  = Join-Path $PSScriptRoot 'hmdb-scan.log'
-$Exts = '.mkv', '.mp4', '.avi', '.m4v'
+$Exts = '.mkv', '.mp4', '.avi', '.m4v', '.srt', '.ass', '.ssa', '.sub', '.vtt'
 $files = New-Object System.Collections.Generic.List[object]
 $report = @()
 

@@ -14,7 +14,7 @@
  */
 
 var REQ_STATUSES = ['demande', 'encours', 'dispo', 'refuse'];
-var FILM_STATUSES = ['vu', 'avoir', 'non'];
+var FILM_STATUSES = ['vu', 'avoir', 'non', 'encours'];
 
 function sheet_(name) {
   return SpreadsheetApp.getActiveSpreadsheet().getSheetByName(name);
@@ -65,6 +65,22 @@ function sheetOrCreate_(name, header) {
   return sh;
 }
 
+/** Demandes en attente dont le film vient d'arriver au scan : passées à « Disponible ». */
+function fulfilRequests_(lib) {
+  var sh = sheet_('Demandes'), rows = sh.getDataRange().getValues(), idx = {}, n = 0;
+  lib.forEach(function (r) { var k = hmdbNorm(r[0]); (idx[k] = idx[k] || []).push(+r[1] || 0); });
+  for (var i = 1; i < rows.length; i++) {
+    var stt = String(rows[i][8]);
+    if (stt !== 'demande' && stt !== 'encours') continue;
+    var y = +rows[i][3] || 0, hit = false;
+    [rows[i][1], rows[i][2]].forEach(function (t) {
+      (idx[hmdbNorm(t || '')] || []).forEach(function (ly) { if (!y || !ly || Math.abs(ly - y) <= 1) hit = true; });
+    });
+    if (hit && hmdbNorm(rows[i][1] || '')) { sh.getRange(i + 1, 9).setValue('dispo'); n++; }
+  }
+  return n;
+}
+
 function corrections_() {
   var sh = sheetOrCreate_('Corrections', ['Titre détecté', 'Titre corrigé', 'Année', 'Catégorie', 'Saga', 'Ignorer (oui)']);
   var rows = sh.getDataRange().getValues(), c = {};
@@ -83,7 +99,7 @@ function library_() {
   var res = { library: [], updated: PropertiesService.getScriptProperties().getProperty('scanDate') || '' };
   if (sh) {
     var rows = sh.getDataRange().getValues();
-    for (var i = 1; i < rows.length; i++) if (rows[i][0]) res.library.push([String(rows[i][0]), +rows[i][1] || 0, String(rows[i][2]), String(rows[i][3]), String(rows[i][4]), +rows[i][5] || 0]);
+    for (var i = 1; i < rows.length; i++) if (rows[i][0]) res.library.push([String(rows[i][0]), +rows[i][1] || 0, String(rows[i][2]), String(rows[i][3]), String(rows[i][4]), +rows[i][5] || 0, String(rows[i][6] || ''), +rows[i][7] || 0, +rows[i][8] || 0, +rows[i][9] || 0]);
   }
   try { cache.put('lib', JSON.stringify(res), 21600); } catch (err) {}
   return res;
@@ -93,8 +109,8 @@ function doGet(e) {
   if (e.parameter.action === 'paths') {
     if (!user_(e.parameter.code)) return json_({ ok: false, error: 'code' });
     var ps = SpreadsheetApp.getActive().getSheetByName('Chemins'), map = {};
-    if (ps && ps.getLastRow() > 1) ps.getRange(2, 1, ps.getLastRow() - 1, 4).getValues().forEach(function (r) {
-      var k = r[0] + '|' + (+r[1] || 0); (map[k] = map[k] || []).push([String(r[2]), String(r[3])]);
+    if (ps && ps.getLastRow() > 1) ps.getRange(2, 1, ps.getLastRow() - 1, Math.min(5, ps.getMaxColumns())).getValues().forEach(function (r) {
+      var k = r[0] + '|' + (+r[1] || 0); (map[k] = map[k] || []).push([String(r[2]), String(r[3]), String(r[4] || '')]);
     });
     return json_({ ok: true, paths: map });
   }
@@ -132,25 +148,31 @@ function doPost(e) {
     if (body.action === 'scan') {
       if (!admin) return json_({ ok: false, error: 'droits' });
       var lib = hmdbBuildLibrary(body.files || [], corrections_());
-      var vs = sheetOrCreate_('Vidéothèque', ['Titre', 'Année', 'Catégorie', 'Saga', 'Emplacement', 'Ajouté (horodatage)']);
-      vs.getRange(2, 1, Math.max(vs.getMaxRows() - 1, 1), 6).clearContent();
+      var HEAD = ['Titre', 'Année', 'Catégorie', 'Saga', 'Emplacement', 'Ajouté (horodatage)', 'Langues', 'Go WD', 'Go Whale', 'Fichiers WD'];
+      var vs = sheetOrCreate_('Vidéothèque', HEAD);
+      if (vs.getMaxColumns() < HEAD.length) vs.insertColumnsAfter(vs.getMaxColumns(), HEAD.length - vs.getMaxColumns());
+      vs.getRange(1, 1, 1, HEAD.length).setValues([HEAD]);
+      vs.getRange(2, 1, Math.max(vs.getMaxRows() - 1, 1), HEAD.length).clearContent();
       if (lib.length) {
         if (vs.getMaxRows() < lib.length + 1) vs.insertRowsAfter(vs.getMaxRows(), lib.length + 1 - vs.getMaxRows());
-        vs.getRange(2, 1, lib.length, 6).setValues(lib);
+        vs.getRange(2, 1, lib.length, HEAD.length).setValues(lib.map(function (r) { return r.slice(0, HEAD.length); }));
       }
+      var dispo = fulfilRequests_(lib);
       // Chemins des fichiers (privé : servi uniquement avec un code famille, onglet masqué)
-      var cs = sheetOrCreate_('Chemins', ['Titre', 'Année', 'Racine', 'Chemin']);
-      cs.getRange(2, 1, Math.max(cs.getMaxRows() - 1, 1), 4).clearContent();
+      var cs = sheetOrCreate_('Chemins', ['Titre', 'Année', 'Racine', 'Chemin', 'Sous-titres']);
+      if (cs.getMaxColumns() < 5) cs.insertColumnsAfter(cs.getMaxColumns(), 5 - cs.getMaxColumns());
+      cs.getRange(1, 1, 1, 5).setValues([['Titre', 'Année', 'Racine', 'Chemin', 'Sous-titres']]);
+      cs.getRange(2, 1, Math.max(cs.getMaxRows() - 1, 1), 5).clearContent();
       var pth = lib.paths || [];
       if (pth.length) {
         if (cs.getMaxRows() < pth.length + 1) cs.insertRowsAfter(cs.getMaxRows(), pth.length + 1 - cs.getMaxRows());
-        cs.getRange(2, 1, pth.length, 4).setValues(pth);
+        cs.getRange(2, 1, pth.length, 5).setValues(pth);
       }
       try { cs.hideSheet(); } catch (err) {}
       var stamp = Utilities.formatDate(new Date(), 'Europe/Paris', 'yyyy-MM-dd HH:mm');
       PropertiesService.getScriptProperties().setProperty('scanDate', stamp);
       CacheService.getScriptCache().remove('lib');
-      return json_({ ok: true, titres: lib.length, fichiers: (body.files || []).length, date: stamp });
+      return json_({ ok: true, titres: lib.length, fichiers: (body.files || []).length, date: stamp, dispo: dispo });
     }
 
     if (body.action === 'addRequest') {

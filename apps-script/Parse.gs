@@ -5,6 +5,7 @@
  */
 
 var VIDEO_EXT = /\.(mkv|mp4|avi|m4v)$/i;
+var SUB_EXT = /\.(srt|ass|ssa|sub|vtt)$/i;
 var JUNK = /(?<![\wÀ-ÿ])(2160p|1080p|1080|720p|576p|540p|480p|4k|4klight|multi|french|truefrench|vff|vf2|vfi|vfq|vof|vostfr|vf|fr|bluray|blu ray|brrip|bdrip|dvdrip|webrip|web|web dl|hdlight|hdrip|hdtv|x264|x265|h264|h265|hevc|av1|remastered|extended|custom|hybrid|ext|uncut|internal|xvid|divx|ac3|aac|dts|proper|repack|imax|director|subforced|yify|mhdgz|eng|open matte|multisub|hd ts|telesync|unrated|mutli|wawacity|wawa city|zone telechargement|ec)(?![\wÀ-ÿ])/i;
 var EPISODE = /(S\d{1,2}\s?E\d{1,3}|\d+\s?of\s?\d+|^\d{1,2}\s*-\s|_t\d+$|^[A-Z]\d_t\d+$)/i;
 
@@ -116,6 +117,14 @@ function hmdbClean(base) {
   return [head, y];
 }
 
+function hmdbTags(base) {
+  var b = base.replace(/[._\-\[\]()]+/g, ' '), t = [];
+  if (/(^|\s)multi(\s|$)/i.test(b)) t.push('MULTI');
+  if (/(^|\s)(truefrench|vff|vfq|vfi|vf2|vf|french)(\s|$)/i.test(b)) t.push('VF');
+  if (/(^|\s)vostfr(\s|$)/i.test(b)) t.push('VOSTFR');
+  return t;
+}
+
 function hmdbFix(t, y, corr) {
   var n = hmdbNorm(t), k = n + '|' + (y || '');
   var c = corr[k] || corr[n] || FIX[k] || FIX[n];
@@ -135,6 +144,23 @@ function hmdbBuildLibrary(files, corr) {
     var base = f.p.split('/').pop();
     return VIDEO_EXT.test(base) && base.charAt(0) !== '.' && f.s > 15e6;
   });
+  // sous-titres rangés à côté des vidéos
+  var subsByDir = {};
+  files.forEach(function (f) {
+    if (!SUB_EXT.test(f.p)) return;
+    var d = f.r + ':' + f.p.split('/').slice(0, -1).join('/');
+    (subsByDir[d] = subsByDir[d] || []).push(f.p);
+  });
+  function subFor(f) {
+    var d = f.r + ':' + f.p.split('/').slice(0, -1).join('/'), list = subsByDir[d];
+    if (!list) return '';
+    var stem = f.p.replace(VIDEO_EXT, '').toLowerCase();
+    var own = list.filter(function (x) { return x.toLowerCase().indexOf(stem) === 0; });
+    if (!own.length && (byDir[d] || []).length === 1) own = list;
+    if (!own.length) return '';
+    own.sort(function (a, b) { return (/fr/i.test(b) ? 1 : 0) - (/fr/i.test(a) ? 1 : 0); });
+    return own[0];
+  }
   // dossiers à regrouper (épisodes)
   var byDir = {};
   vids.forEach(function (f) { var d = f.r + ':' + f.p.split('/').slice(0, -1).join('/'); (byDir[d] = byDir[d] || []).push(f); });
@@ -157,11 +183,21 @@ function hmdbBuildLibrary(files, corr) {
       hit.y = hit.y || y; hit.cat = hit.cat || cat; hit.saga = hit.saga || saga; hit.m = Math.max(hit.m, m);
       return hit;
     }
-    var key = n + '|' + y; out[key] = { n: n, t: t, y: y, cat: cat, saga: saga, loc: loc, m: m, paths: [] }; order.push(key);
+    var key = n + '|' + y; out[key] = { n: n, t: t, y: y, cat: cat, saga: saga, loc: loc, m: m, paths: [], tags: {}, sz: { Z: 0, W: 0 }, nz: 0 }; order.push(key);
     return out[key];
   }
   var seenSeries = {};
-  function keep(o, f) { if (o && (f.r === 'Z' || f.r === 'S')) o.paths.push([f.r, f.p]); }
+  function keep(o, f) {
+    if (!o) return;
+    var onW = f.r === 'W' || f.r === 'T';
+    o.sz[onW ? 'W' : 'Z'] += f.s || 0;
+    hmdbTags(f.p.split('/').pop()).forEach(function (x) { o.tags[x] = 1; });
+    if (onW) return;
+    var sub = subFor(f);
+    if (sub) o.tags.ST = 1;
+    o.nz++;
+    o.paths.push([f.r, f.p, sub]);
+  }
   vids.forEach(function (f) {
     var parts = f.p.split('/'), base = parts[parts.length - 1], top = parts.length > 1 ? parts[0] : '', sub = parts.length > 2 ? parts[1] : '';
     var loc = (f.r === 'W' || f.r === 'T') ? 'W' : 'Z', ser = (f.r === 'S' || f.r === 'T'), dirKey = f.r + ':' + parts.slice(0, -1).join('/');
@@ -194,10 +230,15 @@ function hmdbBuildLibrary(files, corr) {
     if (top === 'Musique' || /^(BBC|The Blue Planet)/i.test(folderName(parts))) cat = 'Documentaires';
     keep(add(t, y, cat, saga, loc, f.m), f);
   });
-  var rows = order.map(function (k) { var o = out[k]; return [o.t, o.y || 0, o.cat, o.saga, o.loc, Math.round(o.m / 1000)]; });
+  var go = function (b) { return Math.round(b / 1e8) / 10; };
+  var rows = order.map(function (k) {
+    var o = out[k], tg = ['MULTI', 'VF', 'VOSTFR', 'ST'].filter(function (x) { return o.tags[x]; }).join(' ');
+    // [titre, année, catégorie, saga, emplacement, ajouté, langues, Go sur le WD, Go sur Whale, fichiers sur le WD]
+    return [o.t, o.y || 0, o.cat, o.saga, o.loc, Math.round(o.m / 1000), tg, go(o.sz.Z), go(o.sz.W), o.cat === 'Séries' ? 0 : o.nz];
+  });
   // chemins des fichiers lisibles sur la TV (WD uniquement) : [titre, année, racine, chemin]
   rows.paths = [];
-  order.forEach(function (k) { var o = out[k]; o.paths.sort(function (a, b) { return a[1] < b[1] ? -1 : 1; }).forEach(function (x) { rows.paths.push([o.t, o.y || 0, x[0], x[1]]); }); });
+  order.forEach(function (k) { var o = out[k]; o.paths.sort(function (a, b) { return a[1] < b[1] ? -1 : 1; }).forEach(function (x) { rows.paths.push([o.t, o.y || 0, x[0], x[1], x[2] || '']); }); });
   return rows;
 }
 

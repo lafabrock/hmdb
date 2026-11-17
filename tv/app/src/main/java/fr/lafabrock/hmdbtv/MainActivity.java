@@ -5,6 +5,9 @@ import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.speech.RecognizerIntent;
+import java.util.ArrayList;
+import org.json.JSONObject;
 import android.view.KeyEvent;
 import android.webkit.JavascriptInterface;
 import android.webkit.ValueCallback;
@@ -54,14 +57,23 @@ public class MainActivity extends Activity {
         runOnUiThread(new Runnable() { public void run() { Toast.makeText(MainActivity.this, t, Toast.LENGTH_LONG).show(); } });
     }
 
-    private void play(String url, String title) { play(url, title, "org.videolan.vlc"); }
+    private static final int VOICE = 42;
 
-    private void play(String url, String title, String pkg) {
+    private void play(String url, String title) { play(url, title, "org.videolan.vlc", ""); }
+
+    private void play(String url, String title, String pkg) { play(url, title, pkg, ""); }
+
+    private void play(String url, String title, String pkg, String sub) {
         Uri uri = Uri.parse(url);
         Intent i = new Intent(Intent.ACTION_VIEW);
         i.setDataAndType(uri, "video/*");
         i.setPackage(pkg);
         if (title != null && title.length() > 0) i.putExtra("title", title);
+        if (sub != null && sub.length() > 0) {
+            i.putExtra("subtitles_location", sub);                       // VLC
+            i.putExtra("subs", new Uri[] { Uri.parse(sub) });              // lecteurs compatibles MX (Nova…)
+            i.putExtra("subs.enable", new Uri[] { Uri.parse(sub) });
+        }
         try {
             startActivity(i);
         } catch (ActivityNotFoundException e) {
@@ -78,13 +90,42 @@ public class MainActivity extends Activity {
         }
 
         @JavascriptInterface
+        public void playWithSubs(final String url, final String title, final String pkg, final String sub) {
+            runOnUiThread(new Runnable() { public void run() { MainActivity.this.play(url, title, pkg, sub); } });
+        }
+
+        @JavascriptInterface
+        public void voice() {
+            runOnUiThread(new Runnable() { public void run() { startVoice(); } });
+        }
+
+        @JavascriptInterface
         public void playWith(final String url, final String title, final String pkg) {
             runOnUiThread(new Runnable() { public void run() { MainActivity.this.play(url, title, pkg); } });
         }
     }
 
+    private void startVoice() {
+        Intent i = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+        i.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+        i.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "fr-FR");
+        i.putExtra(RecognizerIntent.EXTRA_PROMPT, "Quel film cherches-tu ?");
+        try { startActivityForResult(i, VOICE); }
+        catch (Exception e) { toast("Recherche vocale indisponible sur cette box"); }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode != VOICE || resultCode != RESULT_OK || data == null) return;
+        ArrayList<String> r = data.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
+        if (r == null || r.isEmpty()) return;
+        web.evaluateJavascript("window.hmdbVoice&&hmdbVoice(" + JSONObject.quote(r.get(0)) + ")", null);
+    }
+
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
+        if (keyCode == KeyEvent.KEYCODE_SEARCH) { startVoice(); return true; }
         if (keyCode == KeyEvent.KEYCODE_BACK) {
             web.evaluateJavascript("(window.hmdbBack&&window.hmdbBack())?'1':'0'", new ValueCallback<String>() {
                 public void onReceiveValue(String v) {
@@ -105,7 +146,10 @@ public class MainActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
-        if (web != null) web.onResume();
+        if (web != null) {
+            web.onResume();
+            web.evaluateJavascript("window.hmdbResume&&hmdbResume()", null);
+        }
     }
 
     @Override
