@@ -174,7 +174,23 @@ body.tv .chip:focus,body.tv input:focus,body.tv select:focus{outline:3px solid #
 .tvet{min-width:0}.tvet b{display:block;font-size:16px}
 .tvet small{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;color:#b5b4ad;font-size:13.5px;margin-top:3px}
 .tvep:focus{background:rgba(255,255,255,.16)}
-</style>
+.tvlist{display:flex;flex-direction:column;gap:8px}
+.tvrow{display:flex;gap:16px;align-items:center;text-align:left;font:inherit;color:var(--ink);background:var(--card);border:0;border-radius:12px;padding:8px 14px 8px 8px;cursor:pointer;width:100%}
+.tvrow.s-non{opacity:.5}
+.tvrp{flex:0 0 58px;aspect-ratio:2/3;border-radius:8px;background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;font-size:17px}
+.tvrt{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.tvrt b{font-size:18px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tvrm{color:var(--mute);font-size:14px}.tvrw{color:#cfcec8;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tvrb{display:flex;gap:6px;flex-wrap:wrap}.tvrb:empty{display:none}
+.bdg2{font-size:12.5px;border-radius:6px;padding:2px 8px;background:rgba(255,255,255,.1)}
+.bdg2.vu{background:#2e7d32;color:#fff}.bdg2.avoir{background:#1565c0;color:#fff}.bdg2.w{background:#4e342e;color:#fff}.bdg2.nas{background:#33691e;color:#fff}
+.tvrn{flex:0 0 auto}
+body.tv .tvrow:focus{outline:4px solid #ffb300!important;outline-offset:0;background:#2a2a26}
+.tvk{color:#ffb300;font-weight:700;font-size:15px;margin-bottom:4px}
+body.tv .tile:focus .tt{color:#ffb300}
+body.tv h1 small{color:var(--mute);font-weight:500}
+body.tv .stats{color:var(--mute)}
+.tvlab{color:#9f9e97;font-size:14px;margin-right:-2px}</style>
 </head>
 <body>
 <header>
@@ -280,7 +296,7 @@ function play(url,t,pl){
 
 /* ---------- Fiche plein écran pour la TV ---------- */
 var OMDB_KEY='b95c37b1';
-var DET=lsGet('det',{}),SEAS={},TVF=null,TVS=null;
+var DET=lsGet('det',{}),SEAS={},TVF=null,TVS=null,TVRND=false;
 function saveDet(){var k=Object.keys(DET);if(k.length>500)k.slice(0,k.length-500).forEach(function(x){delete DET[x]});lsSet('det',DET)}
 function tget(path){return fetch('https://api.themoviedb.org/3/'+path+(path.indexOf('?')<0?'?':'&')+'api_key='+TMDB_KEY+'&language=fr-FR').then(function(r){if(!r.ok)throw new Error(r.status);return r.json()})}
 function isSeries(f){return f.cat==='Séries'||!!(info(f)&&info(f).tv)}
@@ -312,7 +328,15 @@ function seasonsOf(ps){
  order.forEach(function(k){S[k].eps.sort(function(a,b){return a.e&&b.e?a.e.e-b.e.e:(a.x[1]<b.x[1]?-1:1)})});
  return order.map(function(k){return S[k]});
 }
-function tvOpen(id){TVF=id;TVS=null;curId=null;tvRender(true);var f=FILMS[id];loadDet(f).then(function(){if(TVF===id&&OV)tvRender()})}
+function tvRow(f){
+ var s=st(f),c=color(f),T=title(f),Y=year(f),d=DET[pkey(f)],r=reqFor(f);
+ var what=[Y,f.cat,f.saga,f.age?f.age+' ans':''].filter(Boolean).join(' · ');
+ var who=d&&(d.dir.length||d.cast.length)?(d.dir.length?d.dir.join(', '):'')+(d.dir.length&&d.cast.length?' — ':'')+d.cast.slice(0,2).join(', '):(f.d||'');
+ var bad=(s?'<span class="bdg2 '+s+'">'+({vu:'✓ Vu',avoir:'À voir',non:'✗ Pas intéressé'})[s]+'</span>':'')+(f.loc==='W'?'<span class="bdg2 w">💾 Whale</span>':'')+(f.livre&&ui.tab!=='livre'?'<span class="bdg2">📚 '+f.age+' ans</span>':'')+(ui.tab==='livre'&&f.nas?'<span class="bdg2 nas">📀 À la maison</span>':'')+(r?'<span class="bdg2">'+RST[r.statut][0]+'</span>':'');
+ var note=d?(d.im?'<span class="nt imdb">IMDb <b>'+esc(d.im)+'</b></span>':(d.vote?'<span class="nt tm">TMDB <b>'+d.vote+'</b></span>':'')):'';
+ return '<button class="tvrow'+(s?' s-'+s:'')+'" data-tile="'+f.id+'"><div class="tvrp" data-pk="'+f.id+'" style="background:linear-gradient(150deg,'+c+','+c+'99)">'+esc(initials(T))+'</div><div class="tvrt"><b>'+esc(T)+'</b><span class="tvrm">'+esc(what)+'</span>'+(who?'<span class="tvrw">'+esc(who)+'</span>':'')+'<span class="tvrb">'+bad+'</span></div><div class="tvrn">'+note+'</div></button>';
+}
+function tvOpen(id,rnd){TVF=id;TVS=null;TVRND=!!rnd;curId=null;tvRender(true);var f=FILMS[id];loadDet(f).then(function(){if(TVF===id&&OV)tvRender()})}
 function tvRender(first){
  var f=FILMS[TVF];if(!f)return;
  var a=document.activeElement,keep=a&&OV&&OV.contains(a)?(a.getAttribute('data-fk')||''):'';
@@ -325,8 +349,9 @@ function tvRender(first){
  if(!CODE&&f.nas&&f.loc.indexOf('Z')>=0)btns+='<span class="meta">Entre ton code famille pour lire.</span>';
  else if(f.loc==='W')btns+='<span class="meta">💾 Sur Whale : pas lisible sur la TV.</span>';
  else if(!ser&&ps.length)btns+=Object.keys(PLAYERS).sort(function(x,y){return(y===PLAYER)-(x===PLAYER)}).map(function(k){return'<button class="tvbtn play'+(k==='nova'?' nova':'')+'" data-fk="pl'+k+'" data-play="'+esc(smb(ps[0]))+'" data-pl="'+k+'" data-ptitle="'+esc(T)+'">▶ '+PLAYERS[k][0]+'</button>'}).join('');
- else if(ser&&ps.length)btns+=Object.keys(PLAYERS).map(function(k){return'<button class="tvbtn tog'+(PLAYER===k?' on':'')+'" data-fk="set'+k+'" data-setpl="'+k+'">'+(PLAYER===k?'✓ ':'')+PLAYERS[k][0]+'</button>'}).join('');
+ else if(ser&&ps.length)btns+='<span class="tvlab">Lire avec</span>'+Object.keys(PLAYERS).map(function(k){return'<button class="tvbtn tog'+(PLAYER===k?' on':'')+'" data-fk="set'+k+'" data-setpl="'+k+'">'+(PLAYER===k?'✓ ':'')+PLAYERS[k][0]+'</button>'}).join('');
  if(d&&d.yt)btns+='<button class="tvbtn" data-fk="yt" data-yt="'+esc(d.yt)+'">🎞 Bande-annonce</button>';
+ if(TVRND)btns+='<button class="tvbtn" data-fk="rnd" data-rnd="1">🎲 Un autre</button>';
  btns+='<span class="tvsep"></span>'+STS.map(function(x){return'<button class="tvbtn st2'+(s===x[0]?' on s-'+x[0]:'')+'" data-fk="s'+x[0]+'" data-id="'+f.id+'" data-s="'+x[0]+'">'+x[1]+'</button>'}).join('');
  var eps='';
  if(ser&&ps.length){
@@ -340,7 +365,7 @@ function tvRender(first){
  var bg=d&&d.bd?'background-image:linear-gradient(90deg,rgba(10,10,10,.97) 35%,rgba(10,10,10,.6) 70%,rgba(10,10,10,.35)),url(https://image.tmdb.org/t/p/w1280'+esc(d.bd)+')':'';
  var poster=(d&&d.p)||(i&&i.p)||'';
  overlay('<div class="tvd" style="'+bg+'"><div class="tvin"><div class="tvp" style="background:linear-gradient(150deg,'+c+','+c+'99)'+(poster?';background-image:url('+IMG+esc(poster)+')':'')+'">'+(poster?'':esc(initials(T)))+'</div><div class="tvi">'+
-  '<h1>'+esc(T)+'</h1>'+(T!==f.fr&&!f.livre?'<div class="tvo">'+esc(f.fr)+'</div>':'')+'<div class="tvm">'+esc(meta)+(f.livre?' · 📚 Liste '+f.age+' ans':'')+'</div>'+(notes?'<div class="tvn">'+notes+'</div>':'')+who+
+  (TVRND?'<div class="tvk">🎲 Et si on regardait…</div>':'')+'<h1>'+esc(T)+'</h1>'+(T!==f.fr&&!f.livre?'<div class="tvo">'+esc(f.fr)+'</div>':'')+'<div class="tvm">'+esc(meta)+(f.livre?' · 📚 Liste '+f.age+' ans':'')+'</div>'+(notes?'<div class="tvn">'+notes+'</div>':'')+who+
   (d&&d.ov?'<p class="tvov">'+esc(d.ov)+'</p>':(d?'':'<p class="tvov meta">Chargement des informations…</p>'))+'<div class="tvb">'+btns+'</div></div></div>'+eps+'</div>');
  OV.classList.add('tvov');
  var tgt=keep&&OV.querySelector('[data-fk="'+keep+'"]');
@@ -498,7 +523,7 @@ function render(){
  var H;
  if(!rows.length)H='<div class="empty">Aucun film ne correspond.</div>';
  else if(ui.view==='gal')H='<div class="gal">'+rows.map(function(f){return SEL===f.id?tile(f)+'<div class="gdet">'+card(f)+'</div>':tile(f)}).join('')+'</div>';
- else H=rows.map(card).join('');
+ else H=TV?'<div class="tvlist">'+rows.map(tvRow).join('')+'</div>':rows.map(card).join('');
  $('list').innerHTML=H;hydrate();
  if(OPEN){OPEN=false;var gd=document.querySelector('.gdet');if(gd)try{gd.scrollIntoView({block:'nearest',behavior:'smooth'})}catch(e){}}
 }
@@ -514,8 +539,8 @@ function pick(){
  var pool=VIS.filter(function(f){var s=st(f);return ui.st!=='all'?true:(s!=='vu'&&s!=='non')});
  if(!pool.length)pool=VIS.filter(function(f){return st(f)!=='non'});
  if(!pool.length)pool=VIS;if(!pool.length)return;
- if(pool.length>1&&curId!=null)pool=pool.filter(function(f){return f.id!==curId});
- showCard(pool[Math.floor(Math.random()*pool.length)].id);
+ var cur=curId!=null?curId:TVF;if(pool.length>1&&cur!=null)pool=pool.filter(function(f){return f.id!==cur});
+ var rid=pool[Math.floor(Math.random()*pool.length)].id;if(TV){tvOpen(rid,true);return}showCard(rid);
 }
 var SR=[],srT=null;
 function newReq(){
@@ -588,7 +613,7 @@ setInterval(function(){if(!document.hidden)sync()},60000);
 
 $('q').value=ui.q||'';
 if(TV){
- document.body.classList.add('tv');ui.view='gal';
+ document.body.classList.add('tv');
  var FOC='button,a[href],input,select,summary,[tabindex]:not([tabindex="-1"])';
  var vis=function(el){var r=el.getBoundingClientRect();return r.width>0&&r.height>0};
  var spatial=function(dir,a,list){
@@ -632,8 +657,15 @@ if(TV){
   if(txt&&(e.key==='ArrowLeft'||e.key==='ArrowRight'))return;
   if(nav(e.key))e.preventDefault();
  });
+ var pfT=null;
+ document.addEventListener('focusin',function(e){var t=e.target;if(!t.dataset||t.dataset.tile==null||OV)return;clearTimeout(pfT);pfT=setTimeout(function(){
+  var f=FILMS[+t.dataset.tile];if(!f)return;loadDet(f).then(function(d){if(!d||!t.classList.contains('tvrow')||!document.body.contains(t))return;
+   var n=t.querySelector('.tvrn');if(n)n.innerHTML=d.im?'<span class="nt imdb">IMDb <b>'+esc(d.im)+'</b></span>':(d.vote?'<span class="nt tm">TMDB <b>'+d.vote+'</b></span>':'');
+   var w=t.querySelector('.tvrw'),txt=(d.dir.length?d.dir.join(', '):'')+(d.dir.length&&d.cast.length?' — ':'')+d.cast.slice(0,2).join(', ');
+   if(txt){if(!w){w=document.createElement('span');w.className='tvrw';var m=t.querySelector('.tvrm');m.parentNode.insertBefore(w,m.nextSibling)}w.textContent=txt}
+  })},500)});
  window.hmdbBack=function(){
-  if(OV){var back=TVF;closeOV();if(back!=null){var tb=document.querySelector('[data-tile="'+back+'"]');if(tb)tb.focus()}return true}
+  if(OV){var back=TVF;closeOV();if(back!=null){var tb=document.querySelector('[data-tile="'+back+'"]')||$('rnd');if(tb){tb.focus();try{tb.scrollIntoView({block:'nearest'})}catch(e){}}}return true}
   if(SEL!=null){var id=SEL;SEL=null;render();var t=document.querySelector('[data-tile="'+id+'"]');if(t)t.focus();return true}
   if(window.scrollY>0){window.scrollTo(0,0);var q0=$('q');if(q0)q0.focus();return true}
   return false;
