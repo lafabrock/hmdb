@@ -54,18 +54,20 @@ public class MainActivity extends Activity {
         runOnUiThread(new Runnable() { public void run() { Toast.makeText(MainActivity.this, t, Toast.LENGTH_LONG).show(); } });
     }
 
-    private void play(String url, String title) {
+    private void play(String url, String title) { play(url, title, "org.videolan.vlc"); }
+
+    private void play(String url, String title, String pkg) {
         Uri uri = Uri.parse(url);
         Intent i = new Intent(Intent.ACTION_VIEW);
         i.setDataAndType(uri, "video/*");
-        i.setPackage("org.videolan.vlc");
+        i.setPackage(pkg);
         if (title != null && title.length() > 0) i.putExtra("title", title);
         try {
             startActivity(i);
         } catch (ActivityNotFoundException e) {
             i.setPackage(null);
             try { startActivity(Intent.createChooser(i, "Lire avec…")); }
-            catch (Exception e2) { toast("VLC n'est pas installé sur la box"); }
+            catch (Exception e2) { toast("Aucun lecteur vidéo ne peut ouvrir ce fichier"); }
         }
     }
 
@@ -73,6 +75,11 @@ public class MainActivity extends Activity {
         @JavascriptInterface
         public void play(final String url, final String title) {
             runOnUiThread(new Runnable() { public void run() { MainActivity.this.play(url, title); } });
+        }
+
+        @JavascriptInterface
+        public void playWith(final String url, final String title, final String pkg) {
+            runOnUiThread(new Runnable() { public void run() { MainActivity.this.play(url, title, pkg); } });
         }
     }
 

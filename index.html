@@ -134,6 +134,10 @@ body.tv .tile:focus{transform:scale(1.06);z-index:2;position:relative}
 body.tv .tile{transition:transform .12s}
 body.tv footer{display:none}
 body.tv header{position:static}
+
+.pbs{display:flex;gap:8px;flex-wrap:wrap}
+.playb.nova{background:#1565c0}
+.plsel{align-self:flex-start}
 </style>
 </head>
 <body>
@@ -210,6 +214,7 @@ var saveT=null;function flash(t){setSave(t);clearTimeout(saveT);saveT=setTimeout
 /* ---------- Lecture (box Android TV / téléphone Android) ---------- */
 var TV=!!window.HMDBTV||/[?&]tv=1/.test(location.search),ANDROID=/Android/i.test(navigator.userAgent),CANPLAY=TV||ANDROID;
 var NAS='smb://192.168.1.125/Public/',ROOTS={Z:'Shared Videos',S:'Shared Séries'};
+var PLAYERS={vlc:['VLC','org.videolan.vlc'],nova:['Nova','org.courville.nova']},PLAYER=(function(){try{return JSON.parse(localStorage.getItem('films912-player'))||'vlc'}catch(e){return'vlc'}})();
 var PATHS=null,PLOAD=false;try{PATHS=JSON.parse(localStorage.getItem('films912-paths'))}catch(e){}
 function loadPaths(force){
  if(!CANPLAY||!API||!CODE||PLOAD||(PATHS&&!force))return;PLOAD=true;
@@ -223,13 +228,17 @@ function playArea(f){
  if(!CODE)return'<div class="play"><span class="meta">Entre ton code famille pour lire les films.</span></div>';
  if(!PATHS){loadPaths();return'<div class="play"><span class="meta">Chargement…</span></div>'}
  var ps=pathsOf(f);if(!ps.length)return'<div class="play"><span class="meta">Fichier introuvable (prochain scan ce soir).</span></div>';
- if(ps.length===1)return'<div class="play"><button class="playb" data-play="'+esc(smb(ps[0]))+'" data-ptitle="'+esc(title(f))+'">▶ Lire</button></div>';
+ if(ps.length===1)return'<div class="play"><div class="pbs">'+Object.keys(PLAYERS).sort(function(a,b){return(b===PLAYER)-(a===PLAYER)}).map(function(k){return'<button class="playb'+(k==='nova'?' nova':'')+'" data-play="'+esc(smb(ps[0]))+'" data-pl="'+k+'" data-ptitle="'+esc(title(f))+'">▶ '+PLAYERS[k][0]+'</button>'}).join('')+'</div></div>';
+ var tog='<div class="st plsel">'+Object.keys(PLAYERS).map(function(k){return'<button data-setpl="'+k+'" class="'+(PLAYER===k?'on':'')+'">Lecteur : '+PLAYERS[k][0]+'</button>'}).join('')+'</div>';
  var groups={},order=[];ps.forEach(function(x){var d=x[1].split('/').slice(0,-1).join(' / ')||'—';if(!groups[d]){groups[d]=[];order.push(d)}groups[d].push(x)});
- return'<div class="play">'+order.map(function(d,i){return'<details'+(i===0?' open':'')+'><summary tabindex="0">'+esc(d.split(' / ').pop())+' ('+groups[d].length+')</summary><div class="eps">'+groups[d].map(function(x){return'<button class="playb ep" data-play="'+esc(smb(x))+'" data-ptitle="'+esc(title(f)+' '+epName(x[1]))+'">▶ '+esc(epName(x[1]))+'</button>'}).join('')+'</div></details>'}).join('')+'</div>';
+ return'<div class="play">'+tog+order.map(function(d,i){return'<details'+(i===0?' open':'')+'><summary tabindex="0">'+esc(d.split(' / ').pop())+' ('+groups[d].length+')</summary><div class="eps">'+groups[d].map(function(x){return'<button class="playb ep" data-play="'+esc(smb(x))+'" data-ptitle="'+esc(title(f)+' '+epName(x[1]))+'">▶ '+esc(epName(x[1]))+'</button>'}).join('')+'</div></details>'}).join('')+'</div>';
 }
-function play(url,t){
- if(window.HMDBTV&&window.HMDBTV.play){window.HMDBTV.play(url,t||'');return}
- location.href='intent://'+url.replace(/^smb:\/\//,'')+'#Intent;scheme=smb;type=video/*;package=org.videolan.vlc;S.title='+enc(t||'')+';end';
+function play(url,t,pl){
+ pl=PLAYERS[pl]?pl:PLAYER;var pk=PLAYERS[pl][1];
+ if(pl!==PLAYER){PLAYER=pl;try{localStorage.setItem('films912-player',JSON.stringify(pl))}catch(e){}}
+ if(window.HMDBTV&&window.HMDBTV.playWith){window.HMDBTV.playWith(url,t||'',pk);return}
+ if(window.HMDBTV&&window.HMDBTV.play){if(pl!=='vlc')flash('Mets à jour l\'appli HMDB pour utiliser Nova');window.HMDBTV.play(url,t||'');return}
+ location.href='intent://'+url.replace(/^smb:\/\//,'')+'#Intent;scheme=smb;type=video/*;package='+pk+';S.title='+enc(t||'')+';end';
 }
 
 /* ---------- Infos TMDB (affiche + titre français) ---------- */
@@ -435,7 +444,8 @@ function saveUi(){lsSet('ui2',ui)}
 document.addEventListener('click',function(e){
  var b=e.target.closest('button');if(!b||(b.form&&b.type==='submit'))return;
  var d=b.dataset;
- if(d.play){play(d.play,d.ptitle);return}
+ if(d.play){play(d.play,d.ptitle,d.pl);return}
+ if(d.setpl){PLAYER=d.setpl;try{localStorage.setItem('films912-player',JSON.stringify(PLAYER))}catch(e){}render();return}
  if(d.tab){ui.tab=d.tab;ui.st='all';SEL=null;saveUi();render();window.scrollTo(0,0);if(d.tab==='req')sync();return}
  if(b.id==='rnd'||d.rnd){if(ui.tab==='req'){ui.tab='lib';render()}pick();return}
  if(d.close){closeOV();return}
@@ -496,7 +506,7 @@ if(TV){
  };
  var _render=render;render=function(){
   var a=document.activeElement,ds=a&&a.dataset||{},key=null;
-  ['tile','cat','yr','st','tab','s'].forEach(function(n){if(key==null&&ds[n]!=null)key=[n,ds[n],ds.id]});
+  ['tile','cat','yr','st','tab','s','setpl'].forEach(function(n){if(key==null&&ds[n]!=null)key=[n,ds[n],ds.id]});
   var wasTile=ds.tile!=null;
   _render();
   if(wasTile&&SEL!=null){var pb=document.querySelector('.gdet .playb,.gdet summary');if(pb){pb.focus();return}}

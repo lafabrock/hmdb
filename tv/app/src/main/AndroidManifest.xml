@@ -5,6 +5,7 @@
     <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
     <queries>
         <package android:name="org.videolan.vlc" />
+        <package android:name="org.courville.nova" />
     </queries>
     <application
         android:label="HMDB"
