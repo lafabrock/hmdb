@@ -510,7 +510,7 @@ function sync(){
   STATE={};Object.keys(j.statuts||{}).forEach(function(k){STATE[k]=j.statuts[k].s});lsSet('state2',STATE);
   REQ=j.demandes||[];lsSet('req',REQ);
   render();if(OV&&curId!=null)showCard(curId);else if(OV&&TVF!=null)tvRender();
- }).catch(function(){flash('Hors ligne : modifications non synchronisées')});
+ }).catch(function(e){var m=(e&&(e.name+': '+e.message))||'?';setSave('⚠️ Serveur injoignable ('+m+')');window.HMDBERR=m;if(!sync._r){sync._r=1;setTimeout(function(){sync._r=0},5000);setTimeout(sync,2000)}});
 }
 function send(action,data){
  if(!API||!CODE)return Promise.resolve({ok:true,local:true});
