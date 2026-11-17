@@ -279,7 +279,7 @@ function play(url,t,pl){
 
 
 /* ---------- Fiche plein écran pour la TV ---------- */
-var OMDB_KEY='';
+var OMDB_KEY='b95c37b1';
 var DET=lsGet('det',{}),SEAS={},TVF=null,TVS=null;
 function saveDet(){var k=Object.keys(DET);if(k.length>500)k.slice(0,k.length-500).forEach(function(x){delete DET[x]});lsSet('det',DET)}
 function tget(path){return fetch('https://api.themoviedb.org/3/'+path+(path.indexOf('?')<0?'?':'&')+'api_key='+TMDB_KEY+'&language=fr-FR').then(function(r){if(!r.ok)throw new Error(r.status);return r.json()})}
