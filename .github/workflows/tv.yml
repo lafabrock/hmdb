@@ -1,0 +1,24 @@
+name: Appli Android TV
+on:
+  push:
+    paths: ['tv/**', '.github/workflows/tv.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: '17' }
+      - uses: gradle/actions/setup-gradle@v4
+        with: { gradle-version: '8.9' }
+      - name: Construire l'APK
+        run: gradle -p tv assembleRelease --no-daemon
+      - name: Publier
+        env: { GH_TOKEN: '${{ github.token }}' }
+        run: |
+          cp tv/app/build/outputs/apk/release/app-release.apk hmdb-tv.apk
+          gh release delete tv --yes --cleanup-tag || true
+          gh release create tv hmdb-tv.apk --title "HMDB pour Android TV" --notes "Appli pour la Freebox Pop : installer avec Downloader."

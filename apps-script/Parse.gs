@@ -155,11 +155,13 @@ function hmdbBuildLibrary(files, corr) {
     if (hit) {
       if (hit.loc.indexOf(loc) < 0) hit.loc = (hit.loc + loc).split('').sort().reverse().join('');
       hit.y = hit.y || y; hit.cat = hit.cat || cat; hit.saga = hit.saga || saga; hit.m = Math.max(hit.m, m);
-      return;
+      return hit;
     }
-    var key = n + '|' + y; out[key] = { n: n, t: t, y: y, cat: cat, saga: saga, loc: loc, m: m }; order.push(key);
+    var key = n + '|' + y; out[key] = { n: n, t: t, y: y, cat: cat, saga: saga, loc: loc, m: m, paths: [] }; order.push(key);
+    return out[key];
   }
   var seenSeries = {};
+  function keep(o, f) { if (o && (f.r === 'Z' || f.r === 'S')) o.paths.push([f.r, f.p]); }
   vids.forEach(function (f) {
     var parts = f.p.split('/'), base = parts[parts.length - 1], top = parts.length > 1 ? parts[0] : '', sub = parts.length > 2 ? parts[1] : '';
     var loc = (f.r === 'W' || f.r === 'T') ? 'W' : 'Z', ser = (f.r === 'S' || f.r === 'T'), dirKey = f.r + ':' + parts.slice(0, -1).join('/');
@@ -176,7 +178,7 @@ function hmdbBuildLibrary(files, corr) {
       var c = corr[hmdbNorm(st)] || FIX[hmdbNorm(st)];
       if (c && c[0] === null) return;
       if (c) { st = c[0]; sy = c[1] || sy; ss = c[3] || ss; }
-      add(st, sy, 'Séries', ss, loc, f.m);
+      keep(add(st, sy, 'Séries', ss, loc, f.m), f);
       return;
     }
     var t, y;
@@ -190,9 +192,13 @@ function hmdbBuildLibrary(files, corr) {
     if (fx[2] && fx[2].length > 3) saga = fx[2][3];
     if (/^Kill Bill/i.test(t)) saga = 'Tarantino';
     if (top === 'Musique' || /^(BBC|The Blue Planet)/i.test(folderName(parts))) cat = 'Documentaires';
-    add(t, y, cat, saga, loc, f.m);
+    keep(add(t, y, cat, saga, loc, f.m), f);
   });
-  return order.map(function (k) { var o = out[k]; return [o.t, o.y || 0, o.cat, o.saga, o.loc, Math.round(o.m / 1000)]; });
+  var rows = order.map(function (k) { var o = out[k]; return [o.t, o.y || 0, o.cat, o.saga, o.loc, Math.round(o.m / 1000)]; });
+  // chemins des fichiers lisibles sur la TV (WD uniquement) : [titre, année, racine, chemin]
+  rows.paths = [];
+  order.forEach(function (k) { var o = out[k]; o.paths.sort(function (a, b) { return a[1] < b[1] ? -1 : 1; }).forEach(function (x) { rows.paths.push([o.t, o.y || 0, x[0], x[1]]); }); });
+  return rows;
 }
 
 function folderName(parts) { return parts.length > 1 ? parts[parts.length - 2] : ''; }

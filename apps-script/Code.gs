@@ -90,6 +90,14 @@ function library_() {
 }
 
 function doGet(e) {
+  if (e.parameter.action === 'paths') {
+    if (!user_(e.parameter.code)) return json_({ ok: false, error: 'code' });
+    var ps = SpreadsheetApp.getActive().getSheetByName('Chemins'), map = {};
+    if (ps && ps.getLastRow() > 1) ps.getRange(2, 1, ps.getLastRow() - 1, 4).getValues().forEach(function (r) {
+      var k = r[0] + '|' + (+r[1] || 0); (map[k] = map[k] || []).push([String(r[2]), String(r[3])]);
+    });
+    return json_({ ok: true, paths: map });
+  }
   if (e.parameter.action === 'library') { var l = library_(); return json_({ ok: true, library: l.library, updated: l.updated }); }
   var u = user_(e.parameter.code);
   if (!u) return json_({ ok: false, error: 'code' });
@@ -130,6 +138,15 @@ function doPost(e) {
         if (vs.getMaxRows() < lib.length + 1) vs.insertRowsAfter(vs.getMaxRows(), lib.length + 1 - vs.getMaxRows());
         vs.getRange(2, 1, lib.length, 6).setValues(lib);
       }
+      // Chemins des fichiers (privé : servi uniquement avec un code famille, onglet masqué)
+      var cs = sheetOrCreate_('Chemins', ['Titre', 'Année', 'Racine', 'Chemin']);
+      cs.getRange(2, 1, Math.max(cs.getMaxRows() - 1, 1), 4).clearContent();
+      var pth = lib.paths || [];
+      if (pth.length) {
+        if (cs.getMaxRows() < pth.length + 1) cs.insertRowsAfter(cs.getMaxRows(), pth.length + 1 - cs.getMaxRows());
+        cs.getRange(2, 1, pth.length, 4).setValues(pth);
+      }
+      try { cs.hideSheet(); } catch (err) {}
       var stamp = Utilities.formatDate(new Date(), 'Europe/Paris', 'yyyy-MM-dd HH:mm');
       PropertiesService.getScriptProperties().setProperty('scanDate', stamp);
       CacheService.getScriptCache().remove('lib');
