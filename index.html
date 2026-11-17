@@ -206,6 +206,14 @@ body.tv .stats{color:var(--mute)}
 body.tv .tvrow:focus-within{background:#2a2a26}
 body.tv .tvrmain:focus{outline:3px solid #ffb300!important;outline-offset:0}
 body.tv .tvra .tvbtn:focus{outline:3px solid #ffb300!important;outline-offset:2px}
+.rrow h3,.rall{font-size:15px;margin:2px 0 8px;color:var(--mute);font-weight:600}
+.rall{margin-top:14px}
+.rscroll{display:flex;gap:12px;overflow-x:auto;padding:10px 10px 12px;margin:0 -10px;scrollbar-width:none}
+.rscroll::-webkit-scrollbar{display:none}
+.rscroll .tile{flex:0 0 102px}
+body.tv .rscroll .tile{flex:0 0 132px}
+body.tv .rrow h3,body.tv .rall{font-size:18px;color:var(--ink)}
+.bdg.new{background:#ef6c00}
 </style>
 </head>
 <body>
@@ -356,7 +364,8 @@ function tvRow(f){
  else if(ui.tab==='livre'&&!f.nas)act='';
  return '<div class="tvrow'+(s?' s-'+s:'')+'"><button class="tvrmain" data-tile="'+f.id+'"><span class="tvrp" data-pk="'+f.id+'" style="background:linear-gradient(150deg,'+c+','+c+'99)"></span><span class="tvrt"><b>'+esc(T)+'</b><span class="tvry">'+esc(Y||'')+'</span>'+(what?'<span class="tvrm">'+esc(what)+'</span>':'')+'</span><span class="tvrn">'+note+'</span><span class="tvrb">'+bad+'</span></button><span class="tvra">'+act+'</span></div>';
 }
-function tvOpen(id,rnd){TVF=id;TVS=null;TVRND=!!rnd;curId=null;tvRender(true);var f=FILMS[id];loadDet(f).then(function(){if(TVF===id&&OV)tvRender()})}
+var TVFROM=null;
+function tvOpen(id,rnd){if(!OV)TVFROM=document.activeElement;TVF=id;TVS=null;TVRND=!!rnd;curId=null;tvRender(true);var f=FILMS[id];loadDet(f).then(function(){if(TVF===id&&OV)tvRender()})}
 function tvRender(first){
  var f=FILMS[TVF];if(!f)return;
  var a=document.activeElement,keep=a&&OV&&OV.contains(a)?(a.getAttribute('data-fk')||''):'';
@@ -494,9 +503,15 @@ function card(f){
   playArea(f)+'<div class="acts"><div class="links"><a class="lnk" href="'+imdb+'" target="_blank" rel="noopener">IMDb</a><a class="lnk" href="'+sc+'" target="_blank" rel="noopener">SensCritique</a><a class="lnk" href="'+rt+'" target="_blank" rel="noopener">Rotten 🍅</a><button class="lnk cp" data-copy="'+f.id+'">📋 Copier</button>'+ask+'</div>'+
   '<div class="st">'+STS.map(function(x){return'<button data-id="'+f.id+'" data-s="'+x[0]+'" class="'+(s===x[0]?'on':'')+'">'+x[1]+'</button>'}).join('')+'</div></div></div>';
 }
+function recentRow(){
+ if(ui.tab!=='lib'||ui.q||ui.cat||ui.yr||ui.st!=='all')return'';
+ var r=FILMS.filter(function(f){return f.nas&&f.add}).sort(function(a,b){return b.add-a.add}).slice(0,16);
+ if(r.length<4)return'';
+ return'<div class="rrow"><h3>🆕 Ajouts récents</h3><div class="rscroll">'+r.map(tile).join('')+'</div></div><h3 class="rall">Toute la vidéothèque</h3>';
+}
 function tile(f){
  var s=st(f),c=color(f),T=title(f),Y=year(f);
- var bd=s?'<span class="bdg '+s+'">'+({vu:'✓ Vu',avoir:'À voir',non:'✗'})[s]+'</span>':'';
+ var bd=s?'<span class="bdg '+s+'">'+({vu:'✓ Vu',avoir:'À voir',non:'✗'})[s]+'</span>':(f.nas&&f.add&&Date.now()/1000-f.add<7*86400?'<span class="bdg new">Nouveau</span>':'');
  var sub=[Y,f.age?f.age+' ans':'',ui.tab==='livre'&&f.nas?(f.loc==='W'?'💾':'📀'):'',ui.tab==='lib'&&f.loc==='W'?'💾':'',ui.tab==='lib'&&f.livre?'📚':''].filter(Boolean).join(' · ');
  return '<button class="tile'+(SEL===f.id?' sel':'')+(s?' s-'+s:'')+'" data-tile="'+f.id+'"><div class="pz" data-pk="'+f.id+'" style="background:linear-gradient(150deg,'+c+','+c+'99)">'+esc(initials(T))+bd+'</div><div class="tt" data-tt="'+f.id+'">'+esc(T)+'</div><div class="ty">'+sub+'</div></button>';
 }
@@ -542,7 +557,7 @@ function render(){
  $('count').textContent=rows.length+' titre'+(rows.length>1?'s':'');
  var H;
  if(!rows.length)H='<div class="empty">Aucun film ne correspond.</div>';
- else if(ui.view==='gal')H='<div class="gal">'+rows.map(function(f){return SEL===f.id?tile(f)+'<div class="gdet">'+card(f)+'</div>':tile(f)}).join('')+'</div>';
+ else if(ui.view==='gal')H=recentRow()+'<div class="gal">'+rows.map(function(f){return SEL===f.id?tile(f)+'<div class="gdet">'+card(f)+'</div>':tile(f)}).join('')+'</div>';
  else H=TV?'<div class="tvlist">'+rows.map(tvRow).join('')+'</div>':rows.map(card).join('');
  $('list').innerHTML=H;hydrate();
  if(OPEN){OPEN=false;var gd=document.querySelector('.gdet');if(gd)try{gd.scrollIntoView({block:'nearest',behavior:'smooth'})}catch(e){}}
@@ -683,7 +698,7 @@ if(TV){
    var n=t.querySelector('.tvrn');if(n)n.innerHTML=d.im?'<span class="nt imdb">IMDb <b>'+esc(d.im)+'</b></span>':(d.vote?'<span class="nt tm">TMDB <b>'+d.vote+'</b></span>':'');
   })},500)});
  window.hmdbBack=function(){
-  if(OV){var back=TVF;closeOV();if(back!=null){var tb=document.querySelector('[data-tile="'+back+'"]')||$('rnd');if(tb){tb.focus();try{tb.scrollIntoView({block:'nearest'})}catch(e){}}}return true}
+  if(OV){var back=TVF;closeOV();if(back!=null){var tb=(TVFROM&&document.body.contains(TVFROM)?TVFROM:null)||document.querySelector('[data-tile="'+back+'"]')||$('rnd');if(tb){tb.focus();try{tb.scrollIntoView({block:'nearest'})}catch(e){}}}return true}
   if(SEL!=null){var id=SEL;SEL=null;render();var t=document.querySelector('[data-tile="'+id+'"]');if(t)t.focus();return true}
   if(window.scrollY>0){window.scrollTo(0,0);var q0=$('q');if(q0)q0.focus();return true}
   return false;
