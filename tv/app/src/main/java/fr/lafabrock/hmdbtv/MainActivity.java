@@ -46,7 +46,7 @@ public class MainActivity extends Activity {
         web.setFocusableInTouchMode(true);
         setContentView(web);
         if (savedInstanceState != null) web.restoreState(savedInstanceState);
-        else web.loadUrl(SITE);
+        else web.loadUrl(SITE + "&v=" + System.currentTimeMillis());  // toujours la dernière version du site
         web.requestFocus();
     }
 
