@@ -52,7 +52,10 @@ function load_() {
       date: String(d[j][7]), statut: String(d[j][8]), note: String(d[j][9])
     });
   }
-  return { statuts: statuts, demandes: demandes };
+  var fiches = {};
+  var fs = SpreadsheetApp.getActive().getSheetByName('Fiches');
+  if (fs) fs.getDataRange().getValues().slice(1).forEach(function (r) { if (r[0] && r[1]) fiches[String(r[0])] = String(r[1]); });
+  return { statuts: statuts, demandes: demandes, fiches: fiches };
 }
 
 function today_() {
@@ -130,6 +133,19 @@ function doPost(e) {
   var lock = LockService.getScriptLock();
   lock.waitLock(10000);
   try {
+    // Correction manuelle de la fiche TMDB d'un titre (partagée par toute la famille)
+    if (body.action === 'setMatch') {
+      var mk = String(body.key || ''), ref = String(body.ref || '');
+      if (!mk || (ref && !/^(tv|movie):\d+$/.test(ref))) return json_({ ok: false, error: 'ref' });
+      var fsh = sheetOrCreate_('Fiches', ['Clé (titre|année)', 'Fiche TMDB', 'Par', 'Date']);
+      var fr = fsh.getDataRange().getValues(), at = -1;
+      for (var q = 1; q < fr.length; q++) if (String(fr[q][0]) === mk) { at = q + 1; break; }
+      if (!ref) { if (at > 0) fsh.deleteRow(at); }
+      else if (at > 0) fsh.getRange(at, 2, 1, 3).setValues([[ref, u.nom, today_()]]);
+      else fsh.appendRow([mk, ref, u.nom, today_()]);
+      return json_({ ok: true });
+    }
+
     if (body.action === 'setStatus') {
       var key = String(body.key || '');
       if (!key) return json_({ ok: false, error: 'key' });
