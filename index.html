@@ -332,7 +332,7 @@ var PLAYERS={vlc:['VLC','org.videolan.vlc'],nova:['Nova','org.courville.nova']},
 var PATHS=null,PLOAD=false;try{PATHS=JSON.parse(localStorage.getItem('films912-paths'))}catch(e){}
 function loadPaths(force){
  if(!CANPLAY||!API||!CODE||PLOAD||(PATHS&&!force))return;PLOAD=true;
- fetch(API+'?action=paths&code='+enc(CODE)).then(function(r){return r.json()}).then(function(j){PLOAD=false;if(!j.ok)return;PATHS=j.paths||{};try{localStorage.setItem('films912-paths',JSON.stringify(PATHS))}catch(e){}if(OV&&TVF!=null)tvRender();else render()},function(){PLOAD=false});
+ jget(API+'?action=paths&code='+enc(CODE)).then(function(j){PLOAD=false;if(!j.ok)return;PATHS=j.paths||{};try{localStorage.setItem('films912-paths',JSON.stringify(PATHS))}catch(e){}if(OV&&TVF!=null)tvRender();else render()},function(){PLOAD=false});
 }
 function pathsOf(f){if(!PATHS||!f.lk)return[];var o=[];f.lk.forEach(function(k){(PATHS[k]||[]).forEach(function(x){o.push(x)})});return o}
 function smb(x){return NAS+[ROOTS[x[0]]].concat(x[1].split('/')).map(encodeURIComponent).join('/')}
@@ -497,8 +497,13 @@ function hydrate(){
 }
 
 /* ---------- API (Google Sheet) ---------- */
+var HTTPCB={},HTTPN=0;
+window.hmdbHttpDone=function(id,ok,txt){var cb=HTTPCB[id];if(!cb)return;delete HTTPCB[id];if(!ok){cb[1](new Error(txt));return}try{cb[0](JSON.parse(txt))}catch(e){cb[1](new Error('Réponse illisible'))}};
+function nget(url,method,body){return new Promise(function(res,rej){var id='h'+(++HTTPN);HTTPCB[id]=[res,rej];window.HMDBTV.http(id,method||'GET',url,body||'')})}
+function jget(url){if(window.HMDBTV&&window.HMDBTV.http)return nget(url);return fetch(url).then(function(r){return r.json()})}
 function api(action,data){
  if(!API)return Promise.reject(new Error('noapi'));
+ if(window.HMDBTV&&window.HMDBTV.http){if(action==='load')return nget(API+'?action=load&code='+enc(CODE));return nget(API,'POST',JSON.stringify(Object.assign({action:action,code:CODE},data||{})))}
  if(action==='load')return fetch(API+'?action=load&code='+enc(CODE)).then(function(r){return r.json()});
  return fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(Object.assign({action:action,code:CODE},data||{}))}).then(function(r){return r.json()});
 }
@@ -813,7 +818,7 @@ render();
 sync();
 loadPaths(true);
 if(TV)setTimeout(function(){var t=document.querySelector('.tile');if(t)t.focus();profPick()},400);
-if(API)fetch(API+'?action=library').then(function(r){return r.json()}).then(function(j){
+if(API)jget(API+'?action=library').then(function(j){
  if(!j.ok||!j.library||!j.library.length)return;
  var prev=LIBC&&JSON.stringify(LIBC.rows);LIBC={rows:j.library,updated:j.updated};lsSet('lib2',LIBC);libDate(j.updated);
  if(prev===JSON.stringify(j.library))return;

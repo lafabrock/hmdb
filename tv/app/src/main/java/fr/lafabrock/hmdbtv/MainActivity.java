@@ -10,6 +10,11 @@ import android.os.Bundle;
 import android.speech.RecognizerIntent;
 import java.util.ArrayList;
 import org.json.JSONObject;
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import android.view.KeyEvent;
 import android.webkit.JavascriptInterface;
 import android.webkit.ValueCallback;
@@ -102,6 +107,18 @@ public class MainActivity extends Activity {
             runOnUiThread(new Runnable() { public void run() { MainActivity.this.play(url, title, pkg, sub); } });
         }
 
+        /** Requête vers le serveur de la famille faite par l'appli elle-même (évite les blocages du navigateur intégré). */
+        @JavascriptInterface
+        public void http(final String id, final String method, final String url, final String body) {
+            new Thread(new Runnable() { public void run() {
+                String out; boolean ok = false;
+                try { out = fetch(method, url, body); ok = true; }
+                catch (Exception e) { out = e.getClass().getSimpleName() + ": " + e.getMessage(); }
+                final String js = "window.hmdbHttpDone&&hmdbHttpDone(" + JSONObject.quote(id) + "," + ok + "," + JSONObject.quote(out) + ")";
+                runOnUiThread(new Runnable() { public void run() { web.evaluateJavascript(js, null); } });
+            } }).start();
+        }
+
         @JavascriptInterface
         public void voice() {
             runOnUiThread(new Runnable() { public void run() { startVoice(); } });
@@ -111,6 +128,40 @@ public class MainActivity extends Activity {
         public void playWith(final String url, final String title, final String pkg) {
             runOnUiThread(new Runnable() { public void run() { MainActivity.this.play(url, title, pkg); } });
         }
+    }
+
+    private static String fetch(String method, String url, String body) throws Exception {
+        for (int hop = 0; hop < 6; hop++) {
+            HttpURLConnection c = (HttpURLConnection) new URL(url).openConnection();
+            c.setInstanceFollowRedirects(false);
+            c.setConnectTimeout(15000);
+            c.setReadTimeout(120000);
+            c.setRequestMethod(method);
+            if ("POST".equals(method) && body != null) {
+                c.setDoOutput(true);
+                c.setRequestProperty("Content-Type", "text/plain; charset=utf-8");
+                OutputStream o = c.getOutputStream();
+                o.write(body.getBytes("UTF-8"));
+                o.close();
+            }
+            int code = c.getResponseCode();
+            if (code >= 300 && code < 400) {
+                String loc = c.getHeaderField("Location");
+                c.disconnect();
+                if (loc == null) throw new Exception("redirection sans adresse");
+                url = new URL(new URL(url), loc).toString();
+                method = "GET"; body = null;   // Apps Script : la réponse est servie en GET après redirection
+                continue;
+            }
+            InputStream in = code >= 400 ? c.getErrorStream() : c.getInputStream();
+            ByteArrayOutputStream b = new ByteArrayOutputStream();
+            byte[] buf = new byte[8192]; int n;
+            while (in != null && (n = in.read(buf)) > 0) b.write(buf, 0, n);
+            c.disconnect();
+            if (code >= 400) throw new Exception("HTTP " + code);
+            return b.toString("UTF-8");
+        }
+        throw new Exception("trop de redirections");
     }
 
     private void startVoice() {
