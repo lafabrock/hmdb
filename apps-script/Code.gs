@@ -164,6 +164,7 @@ function doPost(e) {
     if (body.action === 'scan') {
       if (!admin) return json_({ ok: false, error: 'droits' });
       var lib = hmdbBuildLibrary(body.files || [], corrections_());
+      if (!lib.length) return json_({ ok: false, error: 'aucun titre reconnu : rien n\'a été modifié' });
       var HEAD = ['Titre', 'Année', 'Catégorie', 'Saga', 'Emplacement', 'Ajouté (horodatage)', 'Langues', 'Go WD', 'Go Whale', 'Fichiers WD'];
       var vs = sheetOrCreate_('Vidéothèque', HEAD);
       if (vs.getMaxColumns() < HEAD.length) vs.insertColumnsAfter(vs.getMaxColumns(), HEAD.length - vs.getMaxColumns());
@@ -171,7 +172,8 @@ function doPost(e) {
       vs.getRange(2, 1, Math.max(vs.getMaxRows() - 1, 1), HEAD.length).clearContent();
       if (lib.length) {
         if (vs.getMaxRows() < lib.length + 1) vs.insertRowsAfter(vs.getMaxRows(), lib.length + 1 - vs.getMaxRows());
-        vs.getRange(2, 1, lib.length, HEAD.length).setValues(lib.map(function (r) { return r.slice(0, HEAD.length); }));
+        // complète chaque ligne à 10 colonnes (au cas où Parse.gs serait une ancienne version)
+        vs.getRange(2, 1, lib.length, HEAD.length).setValues(lib.map(function (r) { var x = r.slice(0, HEAD.length); while (x.length < HEAD.length) x.push(''); return x; }));
       }
       var dispo = fulfilRequests_(lib);
       // Chemins des fichiers (privé : servi uniquement avec un code famille, onglet masqué)
@@ -182,7 +184,7 @@ function doPost(e) {
       var pth = lib.paths || [];
       if (pth.length) {
         if (cs.getMaxRows() < pth.length + 1) cs.insertRowsAfter(cs.getMaxRows(), pth.length + 1 - cs.getMaxRows());
-        cs.getRange(2, 1, pth.length, 5).setValues(pth);
+        cs.getRange(2, 1, pth.length, 5).setValues(pth.map(function (r) { var x = r.slice(0, 5); while (x.length < 5) x.push(''); return x; }));
       }
       try { cs.hideSheet(); } catch (err) {}
       var stamp = Utilities.formatDate(new Date(), 'Europe/Paris', 'yyyy-MM-dd HH:mm');
