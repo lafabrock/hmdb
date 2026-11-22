@@ -275,7 +275,7 @@ body.tv .fixit:focus{outline:4px solid #ffb300!important;background:#2a2a26}
 .bdg.star{background:#ffb300;color:#111}
 .pronto{font:inherit;font-weight:600;margin-top:8px;border:1px dashed #ffb300;background:transparent;color:var(--ink);border-radius:10px;padding:7px 12px;cursor:pointer}
 .pronto.on{background:#ffb300;color:#111;border-style:solid}
-</style>
+.pchelp{display:block;font-size:12px;margin-top:4px}</style>
 </head>
 <body>
 <header>
@@ -366,7 +366,7 @@ function setSave(t){$('save').textContent=t||''}
 var saveT=null;function flash(t){setSave(t);clearTimeout(saveT);saveT=setTimeout(function(){setSave('')},2500)}
 
 /* ---------- Lecture (box Android TV / téléphone Android) ---------- */
-var APP=!!window.HMDBTV,TV=/[?&]tv=1/.test(location.search)||(APP&&!/[?&]app=1/.test(location.search)&&!window.HMDBTV.voice),ANDROID=/Android/i.test(navigator.userAgent),CANPLAY=TV||APP||ANDROID;
+var APP=!!window.HMDBTV,TV=/[?&]tv=1/.test(location.search)||(APP&&!/[?&]app=1/.test(location.search)&&!window.HMDBTV.voice),ANDROID=/Android/i.test(navigator.userAgent),PCPLAY=!TV&&!APP&&!ANDROID&&/Windows/i.test(navigator.userAgent),CANPLAY=TV||APP||ANDROID||PCPLAY;
 var NAS='smb://192.168.1.125/Public/',ROOTS={Z:'Shared Videos',S:'Shared Séries'};
 var PLAYERS={vlc:['VLC','org.videolan.vlc'],nova:['Nova','org.courville.nova']},PLAYER=(function(){try{return JSON.parse(localStorage.getItem('films912-player'))||'vlc'}catch(e){return'vlc'}})();
 var PATHS=null,PLOAD=false;try{PATHS=JSON.parse(localStorage.getItem('films912-paths'))}catch(e){}
@@ -382,11 +382,16 @@ function playArea(f){
  if(!CODE)return'<div class="play"><span class="meta">Entre ton code famille pour lire les films.</span></div>';
  if(!PATHS){loadPaths();return'<div class="play"><span class="meta">Chargement…</span></div>'}
  var ps=pathsOf(f);if(!ps.length)return'<div class="play"><span class="meta">Fichier introuvable (prochain scan ce soir).</span></div>';
+ if(PCPLAY){var pc=function(x,lab){return'<button class="playb" data-pcplay="'+esc(pcUrl(x))+'" data-fid="'+f.id+'" data-ptitle="'+esc(title(f))+'">'+lab+'</button>'};
+  if(ps.length===1)return'<div class="play"><div class="pbs">'+pc(ps[0],'▶ Lire dans VLC')+'</div>'+pcHelp()+'</div>';
+  return'<div class="play"><div class="eps">'+ps.map(function(x){return pc(x,'▶ '+esc(epName(x[1])))}).join('')+'</div>'+pcHelp()+'</div>'}
  if(ps.length===1)return'<div class="play"><div class="pbs">'+Object.keys(PLAYERS).sort(function(a,b){return(b===PLAYER)-(a===PLAYER)}).map(function(k){return'<button class="playb'+(k==='nova'?' nova':'')+'" data-play="'+esc(smb(ps[0]))+'" data-sub="'+esc(subUrl(ps[0]))+'" data-fid="'+f.id+'" data-pl="'+k+'" data-ptitle="'+esc(title(f))+'">▶ '+PLAYERS[k][0]+'</button>'}).join('')+'</div></div>';
  var tog='<div class="st plsel">'+Object.keys(PLAYERS).map(function(k){return'<button data-setpl="'+k+'" class="'+(PLAYER===k?'on':'')+'">Lecteur : '+PLAYERS[k][0]+'</button>'}).join('')+'</div>';
  var groups={},order=[];ps.forEach(function(x){var d=x[1].split('/').slice(0,-1).join(' / ')||'—';if(!groups[d]){groups[d]=[];order.push(d)}groups[d].push(x)});
  return'<div class="play">'+tog+order.map(function(d,i){return'<details'+(i===0?' open':'')+'><summary tabindex="0">'+esc(d.split(' / ').pop())+' ('+groups[d].length+')</summary><div class="eps">'+groups[d].map(function(x){return'<button class="playb ep" data-play="'+esc(smb(x))+'" data-sub="'+esc(subUrl(x))+'" data-fid="'+f.id+'" data-ptitle="'+esc(title(f)+' '+epName(x[1]))+'">▶ '+esc(epName(x[1]))+'</button>'}).join('')+'</div></details>'}).join('')+'</div>';
 }
+function pcUrl(x){return'hmdbplay:///'+x[0]+'/'+x[1].split('/').map(encodeURIComponent).join('/')}
+function pcHelp(){return'<span class="meta pchelp">Sur ce PC : installe une fois le petit lecteur HMDB (<a href="https://github.com/lafabrock/hmdb/tree/main/pc" target="_blank" rel="noopener">mode d\'emploi</a>).</span>'}
 function subUrl(x){return x&&x[2]?smb([x[0],x[2]]):''}
 function play(url,t,pl,sub,fid){
  pl=PLAYERS[pl]?pl:PLAYER;var pk=PLAYERS[pl][1];
@@ -808,6 +813,7 @@ function saveUi(){lsSet('ui2',ui)}
 document.addEventListener('click',function(e){
  var b=e.target.closest('button');if(!b||(b.form&&b.type==='submit'))return;
  var d=b.dataset;
+ if(d.pcplay){if(d.fid!=null&&FILMS[+d.fid])started(FILMS[+d.fid],d.pcplay,d.ptitle);location.href=d.pcplay;return}
  if(d.play){play(d.play,d.ptitle,d.pl,d.sub,d.fid);return}
  if(d.fixq!=null){closeOV();fixOpen(+d.fixq);return}
  if(d.pickfix){var ff=FILMS[FIXID],kk=pkey(ff);FICHES[kk]=d.pickfix;lsSet('fiches',FICHES);send('setMatch',{key:kk,ref:d.pickfix});closeOV();applyFiche(kk);flash('Fiche corrigée pour toute la famille');if(TV)tvOpen(FIXID);else showCard(FIXID);return}
