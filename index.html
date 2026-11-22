@@ -305,6 +305,8 @@ var FILMS=[],SAGAS=[];
 function nk(x){return norm(x).replace(/[^a-z0-9]+/g,' ').trim()}
 function mergeLoc(a,b){var s=(a||'')+(b||''),o='';if(s.indexOf('Z')>=0)o+='Z';if(s.indexOf('W')>=0)o+='W';return o}
 function embeddedLib(){return RAW.filter(function(f){return f[7]}).map(function(f){return[f[0],f[2]||0,f[5]||'',f[6]||'',f[7],f[8]||0]})}
+// « L Histoire » -> « L'Histoire », « p tit » -> « p'tit » (apostrophes perdues dans les noms de fichiers)
+function apos(t){return String(t).replace(/(^|[\s(])([LlDdJjNnSsCcMmTt]|[Qq]u) (?=[aeiouyhéèêàâîôûAEIOUYHÉÈÊÀÂÎÔÛ])/g,"$1$2'").replace(/\b([Pp]) tit\b/g,"$1'tit").replace(/\b([Aa]) t'(il|elle|on)\b/g,'$1-t-$2')}
 function buildFilms(lib){
  var films=BOOK.map(function(b){return{fr:b[0],or:b[1]||b[0],y:b[2]||0,d:b[3]||'',age:b[4],cat:'',saga:'',nas:false,loc:'',add:0,livre:true}});
  var idx={};films.forEach(function(f){[nk(f.fr),nk(f.or)].forEach(function(k){(idx[k]=idx[k]||[]).push(f)})});
@@ -313,7 +315,7 @@ function buildFilms(lib){
   var lk=r[0]+'|'+(+r[1]||0);
   var ex={tags:r[6]||'',gz:+r[7]||0,gw:+r[8]||0,nz:+r[9]||0};
   if(c){c.lk=(c.lk||[]).concat(lk);c.tags=ex.tags;c.gz=ex.gz;c.gw=ex.gw;c.nz=ex.nz;c.nas=true;c.loc=mergeLoc(c.loc,r[4]);c.cat=c.cat||r[2]||'';c.saga=c.saga||r[3]||'';c.add=Math.max(c.add,r[5]||0);return}
-  films.push({fr:r[0],or:r[0],y:r[1]||0,d:'',age:0,cat:r[2]||'',saga:r[3]||'',nas:true,loc:r[4]||'Z',add:r[5]||0,livre:false,lk:[lk],tags:ex.tags,gz:ex.gz,gw:ex.gw,nz:ex.nz});
+  films.push({fr:apos(r[0]),or:apos(r[0]),y:r[1]||0,d:'',age:0,cat:r[2]||'',saga:r[3]||'',nas:true,loc:r[4]||'Z',add:r[5]||0,livre:false,lk:[lk],tags:ex.tags,gz:ex.gz,gw:ex.gw,nz:ex.nz});
  });
  films.forEach(function(f,i){f.id=i});FILMS=films;
  SAGAS=[];FILMS.forEach(function(f){if(f.nas&&f.saga&&SAGAS.indexOf(f.saga)<0)SAGAS.push(f.saga)});SAGAS.sort(function(a,b){return a.localeCompare(b,'fr')});
@@ -729,8 +731,8 @@ function render(){
  var q=norm(ui.q||'');
  var rows=scope().filter(function(f){
   if(ui.tab==='livre'&&ui.age&&f.age!==ui.age)return false;
-  if(LIB()&&ui.cat){if(ui.cat==='saga:'){if(!f.saga)return false}else if(ui.cat.indexOf('saga:')===0){if(f.saga!==ui.cat.slice(5))return false}else if(f.cat!==ui.cat)return false}
-  if(ui.yr&&ybin(f)!==ui.yr)return false;
+  if(LIB()&&ui.cat&&!ui.q){if(ui.cat==='saga:'){if(!f.saga)return false}else if(ui.cat.indexOf('saga:')===0){if(f.saga!==ui.cat.slice(5))return false}else if(f.cat!==ui.cat)return false}
+  if(ui.yr&&!ui.q&&ybin(f)!==ui.yr)return false;
   var s=st(f)||'none';if(ui.st==='nas'){if(!f.nas)return false}else if(ui.st!=='all'&&s!==ui.st)return false;
   if(q&&norm(title(f)+' '+f.fr+' '+f.or+' '+f.d+' '+year(f)+' '+f.saga).indexOf(q)<0)return false;return true});
  if(LIB()){
