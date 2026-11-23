@@ -275,7 +275,12 @@ body.tv .fixit:focus{outline:4px solid #ffb300!important;background:#2a2a26}
 .bdg.star{background:#ffb300;color:#111}
 .pronto{font:inherit;font-weight:600;margin-top:8px;border:1px dashed #ffb300;background:transparent;color:var(--ink);border-radius:10px;padding:7px 12px;cursor:pointer}
 .pronto.on{background:#ffb300;color:#111;border-style:solid}
-.pchelp{display:block;font-size:12px;margin-top:4px}</style>
+.pchelp{display:block;font-size:12px;margin-top:4px}
+.xtra{grid-column:1/-1;display:flex;flex-wrap:wrap;align-items:center;gap:6px 18px}
+.xtra:empty,.xtra .pgslot:empty{display:none}
+.xtra .pg{margin:2px 0}.xtra .play{margin:2px 0}
+.xtra .pchelp{flex-basis:100%}
+</style>
 </head>
 <body>
 <header>
@@ -673,7 +678,7 @@ function card(f){
   '<a class="poster" data-pk="'+f.id+'" href="'+aff+'" target="_blank" rel="noopener" style="background:linear-gradient(150deg,'+c+','+c+'99)">'+esc(initials(T))+'<small>affiche ↗</small></a>'+
   '<div class="t"><div class="fr" data-tt="'+f.id+'">'+esc(T)+'</div>'+orig+'<div class="meta metam">'+age+(Y||'')+(what?' · '+esc(what):'')+extra+'</div></div>'+
   '<div class="meta y">'+(Y||'')+'</div><div class="meta d">'+esc(what)+extra+'</div><div class="agec">'+age+'</div>'+
-  '<div class="pgslot" data-pgid="'+f.id+'">'+pgBadge(f)+'</div>'+playArea(f)+'<div class="acts"><div class="links"><a class="lnk" href="'+imdb+'" target="_blank" rel="noopener">IMDb</a><a class="lnk" href="'+sc+'" target="_blank" rel="noopener">SensCritique</a><a class="lnk" href="'+rt+'" target="_blank" rel="noopener">Rotten 🍅</a><button class="lnk cp" data-copy="'+f.id+'">📋 Copier</button><button class="lnk" data-fixq="'+f.id+'">🔍 Mauvaise fiche ?</button>'+ask+'</div>'+
+  '<div class="xtra"><div class="pgslot" data-pgid="'+f.id+'">'+pgBadge(f)+'</div>'+playArea(f)+'</div><div class="acts"><div class="links"><a class="lnk" href="'+imdb+'" target="_blank" rel="noopener">IMDb</a><a class="lnk" href="'+sc+'" target="_blank" rel="noopener">SensCritique</a><a class="lnk" href="'+rt+'" target="_blank" rel="noopener">Rotten 🍅</a><button class="lnk cp" data-copy="'+f.id+'">📋 Copier</button><button class="lnk" data-fixq="'+f.id+'">🔍 Mauvaise fiche ?</button>'+ask+'</div>'+
   '<button class="pronto'+(isPronto(f)?' on':'')+'" data-star="'+f.id+'">'+(isPronto(f)?'⭐ À regarder pronto ✓':'☆ À regarder pronto')+'</button>'+
   '<div class="st">'+STS.map(function(x){return'<button data-id="'+f.id+'" data-s="'+x[0]+'" class="'+(s===x[0]?'on':'')+'">'+x[1]+'</button>'}).join('')+'</div></div></div>';
 }
