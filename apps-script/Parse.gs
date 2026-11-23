@@ -192,11 +192,10 @@ function hmdbBuildLibrary(files, corr) {
     var onW = f.r === 'W' || f.r === 'T';
     o.sz[onW ? 'W' : 'Z'] += f.s || 0;
     hmdbTags(f.p.split('/').pop()).forEach(function (x) { o.tags[x] = 1; });
-    if (onW) return;
     var sub = subFor(f);
     if (sub) o.tags.ST = 1;
-    o.nz++;
-    o.paths.push([f.r, f.p, sub]);
+    if (!onW) o.nz++;
+    o.paths.push([f.r, f.p, sub]);   // W / T (Whale) : lisibles seulement depuis le PC où Whale est branché
   }
   vids.forEach(function (f) {
     var parts = f.p.split('/'), base = parts[parts.length - 1], top = parts.length > 1 ? parts[0] : '', sub = parts.length > 2 ? parts[1] : '';
@@ -236,7 +235,7 @@ function hmdbBuildLibrary(files, corr) {
     // [titre, année, catégorie, saga, emplacement, ajouté, langues, Go sur le WD, Go sur Whale, fichiers sur le WD]
     return [o.t, o.y || 0, o.cat, o.saga, o.loc, Math.round(o.m / 1000), tg, go(o.sz.Z), go(o.sz.W), o.cat === 'Séries' ? 0 : o.nz];
   });
-  // chemins des fichiers lisibles sur la TV (WD uniquement) : [titre, année, racine, chemin]
+  // chemins des fichiers (Z/S : WD, lisibles partout ; W/T : Whale, lisibles sur le PC de Whale) : [titre, année, racine, chemin]
   rows.paths = [];
   order.forEach(function (k) { var o = out[k]; o.paths.sort(function (a, b) { return a[1] < b[1] ? -1 : 1; }).forEach(function (x) { rows.paths.push([o.t, o.y || 0, x[0], x[1], x[2] || '']); }); });
   return rows;

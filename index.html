@@ -379,16 +379,17 @@ function loadPaths(force){
  if(!CANPLAY||!API||!CODE||PLOAD||(PATHS&&!force))return;PLOAD=true;
  jget(API+'?action=paths&code='+enc(CODE)).then(function(j){PLOAD=false;if(!j.ok)return;PATHS=j.paths||{};try{localStorage.setItem('films912-paths',JSON.stringify(PATHS))}catch(e){}if(OV&&TVF!=null)tvRender();else render()},function(){PLOAD=false});
 }
-function pathsOf(f){if(!PATHS||!f.lk)return[];var o=[];f.lk.forEach(function(k){(PATHS[k]||[]).forEach(function(x){o.push(x)})});return o}
+// Z/S : WD (lisibles partout) ; W/T : Whale, seulement depuis un PC (lecteur HMDB), après les copies du WD
+function pathsOf(f){if(!PATHS||!f.lk)return[];var o=[],w=[];f.lk.forEach(function(k){(PATHS[k]||[]).forEach(function(x){if(x[0]==='W'||x[0]==='T')w.push(x);else o.push(x)})});return o.length||!PCPLAY?o:w}
 function smb(x){return NAS+[ROOTS[x[0]]].concat(x[1].split('/')).map(encodeURIComponent).join('/')}
 function epName(p){var b=p.split('/').pop().replace(/\.(mkv|mp4|avi|m4v)$/i,'').replace(/[._]+/g,' '),m=b.match(/S(\d{1,2})\s?E(\d{1,3})/i);return m?'S'+('0'+m[1]).slice(-2)+'E'+('0'+m[2]).slice(-2):b.slice(0,40)}
 function playArea(f){
- if(!CANPLAY||!f.nas||f.loc.indexOf('Z')<0)return'';
+ if(!CANPLAY||!f.nas||(f.loc.indexOf('Z')<0&&!PCPLAY))return'';
  if(!CODE)return'<div class="play"><span class="meta">Entre ton code famille pour lire les films.</span></div>';
  if(!PATHS){loadPaths();return'<div class="play"><span class="meta">Chargement…</span></div>'}
  var ps=pathsOf(f);if(!ps.length)return'<div class="play"><span class="meta">Fichier introuvable (prochain scan ce soir).</span></div>';
  if(PCPLAY){var pc=function(x,lab){return'<button class="playb" data-pcplay="'+esc(pcUrl(x))+'" data-fid="'+f.id+'" data-ptitle="'+esc(title(f))+'">'+lab+'</button>'};
-  if(ps.length===1)return'<div class="play"><div class="pbs">'+pc(ps[0],'▶ Lire dans VLC')+'</div>'+pcHelp()+'</div>';
+  if(ps.length===1)return'<div class="play"><div class="pbs">'+pc(ps[0],'▶ Lire dans VLC'+(ps[0][0]==='W'||ps[0][0]==='T'?' (Whale)':''))+'</div>'+pcHelp()+'</div>';
   return'<div class="play"><div class="eps">'+ps.map(function(x){return pc(x,'▶ '+esc(epName(x[1])))}).join('')+'</div>'+pcHelp()+'</div>'}
  if(ps.length===1)return'<div class="play"><div class="pbs">'+Object.keys(PLAYERS).sort(function(a,b){return(b===PLAYER)-(a===PLAYER)}).map(function(k){return'<button class="playb'+(k==='nova'?' nova':'')+'" data-play="'+esc(smb(ps[0]))+'" data-sub="'+esc(subUrl(ps[0]))+'" data-fid="'+f.id+'" data-pl="'+k+'" data-ptitle="'+esc(title(f))+'">▶ '+PLAYERS[k][0]+'</button>'}).join('')+'</div></div>';
  var tog='<div class="st plsel">'+Object.keys(PLAYERS).map(function(k){return'<button data-setpl="'+k+'" class="'+(PLAYER===k?'on':'')+'">Lecteur : '+PLAYERS[k][0]+'</button>'}).join('')+'</div>';
